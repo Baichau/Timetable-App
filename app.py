@@ -1,26 +1,57 @@
-from flask import Flask, render_template, request, jsonify
-from models import db, Event
-from datetime import datetime
+# app.py - FOR PRODUCTION (when you have templates ready)
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from models import db, Event, User, FocusSession
+from datetime import datetime, timedelta
 import json
+import time
+from flask_cors import CORS
+import os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///events.db'
+
+# Configuration - use environment variables for production
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///events.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
+
+# Security headers for production
+@app.after_request
+def after_request(response):
+    response.headers.add('X-Content-Type-Options', 'nosniff')
+    response.headers.add('X-Frame-Options', 'SAMEORIGIN')
+    response.headers.add('X-XSS-Protection', '1; mode=block')
+    return response
 
 db.init_app(app)
+CORS(app)
 
+# All routes for complete application
 @app.route('/')
 def index():
     return render_template('index.html')
 
+@app.route('/timetable')
+def timetable():
+    return render_template('timetable.html')
+
+@app.route('/focus-timer')
+def focus_timer():
+    return render_template('focus-timer.html')
+
+@app.route('/focus-time')  # Redirect for backward compatibility
+def focus_time():
+    return redirect(url_for('focus_timer'))
+
+@app.route('/resources')
+def resources():
+    return render_template('resources.html')
+
+# API Routes
 @app.route('/api/events', methods=['GET', 'POST', 'DELETE'])
 def handle_events():
     if request.method == 'GET':
         events = Event.query.all()
-        events_list = []
-        for event in events:
-            events_list.append(event.to_dict())
-        return jsonify(events_list)
+        return jsonify([event.to_dict() for event in events])
     
     elif request.method == 'POST':
         try:
@@ -28,11 +59,6 @@ def handle_events():
                 return jsonify({'error': 'Content-Type must be application/json'}), 400
                 
             data = request.get_json()
-            if not data:
-                return jsonify({'error': 'No JSON data received'}), 400
-                
-            print("📨 Received data:", data)
-            
             required_fields = ['title', 'start', 'end']
             for field in required_fields:
                 if field not in data:
@@ -53,11 +79,9 @@ def handle_events():
             
             db.session.add(new_event)
             db.session.commit()
-            print("✅ Event created successfully, ID:", new_event.id)
             return jsonify({'message': 'Event created', 'id': new_event.id})
             
         except Exception as e:
-            print("❌ Error creating event:", str(e))
             return jsonify({'error': str(e)}), 500
     
     elif request.method == 'DELETE':
@@ -90,18 +114,67 @@ def current_time():
         'current_day': now.weekday()
     })
 
-with app.app_context():
-    db.create_all()
+# Focus sessions API
+@app.route('/api/focus-sessions', methods=['POST'])
+def create_focus_session():
+    try:
+        data = request.get_json()
+        duration = data.get('duration', 25)
+        session_type = data.get('type', 'pomodoro')
+        
+        new_session = FocusSession(
+            duration=duration,
+            session_type=session_type,
+            completed=False
+        )
+        
+        db.session.add(new_session)
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Focus session created',
+            'id': new_session.id
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/focus-sessions/<int:session_id>', methods=['PUT'])
+def update_focus_session(session_id):
+    try:
+        session = FocusSession.query.get(session_id)
+        if not session:
+            return jsonify({'error': 'Session not found'}), 404
+            
+        data = request.get_json()
+        if 'completed' in data:
+            session.completed = data['completed']
+            if data['completed']:
+                session.completed_at = datetime.utcnow()
+        if 'notes' in data:
+            session.notes = data['notes']
+            
+        db.session.commit()
+        
+        return jsonify({'message': 'Session updated'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Health check endpoint for production
+@app.route('/health')
+def health_check():
+    return jsonify({'status': 'healthy', 'timestamp': datetime.utcnow().isoformat()})
 
 if __name__ == '__main__':
-    import sys
-    port = 5001
-    if len(sys.argv) > 1:
-        try:
-            port = int(sys.argv[1])
-        except ValueError:
-            print(f"Invalid port: {sys.argv[1]}. Using default port 5001")
+    with app.app_context():
+        db.create_all()
     
-    print(f"🚀 Starting server on port {port}...")
-    print(f"📋 Open: http://localhost:{port}")
-    app.run(debug=True, port=port, host='0.0.0.0')
+    # Determine if we're in production
+    is_production = os.environ.get('FLASK_ENV') == 'production'
+    
+    if is_production:
+        print("🚀 Starting PRODUCTION server")
+        # For production, use a proper WSGI server like Gunicorn
+        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    else:
+        print("🔧 Starting DEVELOPMENT server on http://localhost:5001")
+        app.run(debug=True, port=5001, host='0.0.0.0')

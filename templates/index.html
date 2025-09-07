@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Timetable App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-calendar-alt"></i> Advanced Timetable</h1>
+            <div class="header-controls">
+                <div class="current-time">Current: <span id="current-time-display"></span></div>
+                <div class="view-selector">
+                    <button id="day-view-btn" class="view-btn active">Day</button>
+                    <button id="week-view-btn" class="view-btn">Week</button>
+                    <button id="month-view-btn" class="view-btn">Month</button>
+                </div>
+                <div class="date-navigation">
+                    <button id="prev-date-btn"><i class="fas fa-chevron-left"></i></button>
+                    <span id="current-date-range">Loading...</span>
+                    <button id="next-date-btn"><i class="fas fa-chevron-right"></i></button>
+                </div>
+            </div>
+        </header>
+        
+        <div class="main-content">
+            <!-- Day View -->
+            <div id="day-view" class="view active">
+                <div class="timeline-container">
+                    <div class="timeline">
+                        <div class="time-marker" id="current-time-marker"></div>
+                        <div class="time-labels"></div>
+                    </div>
+                    <div class="events-container" id="day-events-container"></div>
+                </div>
+            </div>
+            
+            <!-- Week View -->
+            <div id="week-view" class="view">
+                <div class="week-header">
+                    <div class="time-column"></div>
+                    <div class="day-column">Monday</div>
+                    <div class="day-column">Tuesday</div>
+                    <div class="day-column">Wednesday</div>
+                    <div class="day-column">Thursday</div>
+                    <div class="day-column">Friday</div>
+                    <div class="day-column">Saturday</div>
+                    <div class="day-column">Sunday</div>
+                </div>
+                <div class="week-body">
+                    <div class="time-labels-column"></div>
+                    <div class="days-container">
+                        <div class="day-column" data-day="0"></div>
+                        <div class="day-column" data-day="1"></div>
+                        <div class="day-column" data-day="2"></div>
+                        <div class="day-column" data-day="3"></div>
+                        <div class="day-column" data-day="4"></div>
+                        <div class="day-column" data-day="5"></div>
+                        <div class="day-column" data-day="6"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Month View -->
+            <div id="month-view" class="view">
+                <div class="month-header">
+                    <div class="weekday-header">Mon</div>
+                    <div class="weekday-header">Tue</div>
+                    <div class="weekday-header">Wed</div>
+                    <div class="weekday-header">Thu</div>
+                    <div class="weekday-header">Fri</div>
+                    <div class="weekday-header">Sat</div>
+                    <div class="weekday-header">Sun</div>
+                </div>
+                <div class="month-days" id="month-days-container"></div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="add-event-btn" class="btn-primary"><i class="fas fa-plus"></i> Add Event</button>
+            <button id="clear-all-btn" class="btn-danger"><i class="fas fa-trash"></i> Clear All</button>
+            <button id="settings-btn" class="btn-secondary"><i class="fas fa-cog"></i> Settings</button>
+        </div>
+    </div>
+    
+    <!-- Event Modal -->
+    <div class="modal" id="event-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="fas fa-calendar-plus"></i> Add New Event</h2>
+            <form id="event-form">
+                <div class="form-group">
+                    <input type="text" id="event-title" placeholder="Event title" required>
+                </div>
+                
+                <div class="form-group time-inputs">
+                    <input type="time" id="event-start" required>
+                    <span>to</span>
+                    <input type="time" id="event-end" required>
+                </div>
+                
+                <div class="form-group">
+                    <textarea id="event-description" placeholder="Description (optional)"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Color:</label>
+                    <input type="color" id="event-color" value="#3a86ff">
+                </div>
+                
+                <div class="form-group">
+                    <label>Date:</label>
+                    <select id="event-date-type">
+                        <option value="specific">Specific Date</option>
+                        <option value="recurring">Recurring</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="specific-date-group">
+                    <input type="date" id="event-specific-date">
+                </div>
+                
+                <div class="form-group recurring-options" id="recurring-options-group">
+                    <label>Recurrence Pattern:</label>
+                    <select id="event-recurrence-pattern">
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                    </select>
+                    
+                    <div id="weekly-options" class="recurrence-option">
+                        <label>Day of week:</label>
+                        <select id="event-day-of-week">
+                            <option value="0">Monday</option>
+                            <option value="1">Tuesday</option>
+                            <option value="2">Wednesday</option>
+                            <option value="3">Thursday</option>
+                            <option value="4">Friday</option>
+                            <option value="5">Saturday</option>
+                            <option value="6">Sunday</option>
+                        </select>
+                    </div>
+                    
+                    <div class="recurrence-option">
+                        <label>End Date (optional):</label>
+                        <input type="date" id="event-recurrence-end-date">
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn-primary"><i class="fas fa-save"></i> Save Event</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Event Details Modal -->
+    <div class="modal" id="event-details-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="event-details-title"></h2>
+            <div class="event-details">
+                <p><i class="fas fa-clock"></i> <span id="event-details-time"></span></p>
+                <p><i class="fas fa-calendar"></i> <span id="event-details-date"></span></p>
+                <p id="event-details-description"></p>
+                <p id="event-details-recurrence"></p>
+            </div>
+            <div class="event-actions">
+                <button id="edit-event-btn" class="btn-primary"><i class="fas fa-edit"></i> Edit</button>
+                <button id="delete-event-btn" class="btn-danger"><i class="fas fa-trash"></i> Delete</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Modal -->
+    <div class="modal" id="settings-modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2><i class="fas fa-cog"></i> Settings</h2>
+            <div class="settings-group">
+                <h3>Appearance</h3>
+                <label>Theme:</label>
+                <select id="theme-select">
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="auto">Auto (System)</option>
+                </select>
+            </div>
+            <div class="settings-group">
+                <h3>Notifications</h3>
+                <label>
+                    <input type="checkbox" id="notifications-enabled"> Enable notifications
+                </label>
+                <div class="notification-options">
+                    <label>Notification time before event:</label>
+                    <select id="notification-time">
+                        <option value="5">5 minutes</option>
+                        <option value="10">10 minutes</option>
+                        <option value="15">15 minutes</option>
+                        <option value="30">30 minutes</option>
+                        <option value="60">1 hour</option>
+                    </select>
+                </div>
+            </div>
+            <button id="save-settings-btn" class="btn-primary">Save Settings</button>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

@@ -1,4 +1,3 @@
-# models.py
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -13,6 +12,13 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     is_active = db.Column(db.Boolean, default=True)
     role = db.Column(db.String(20), default='student')
+    preferences = db.Column(db.Text, default='{}')  # JSON string for user preferences
+    
+    # Relationships
+    events = db.relationship('Event', backref='user', lazy=True)
+    focus_sessions = db.relationship('FocusSession', backref='user', lazy=True)
+    study_resources = db.relationship('StudyResource', backref='user', lazy=True)
+    todos = db.relationship('Todo', backref='user', lazy=True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -26,7 +32,8 @@ class User(db.Model):
             'username': self.username,
             'email': self.email,
             'created_at': self.created_at.isoformat(),
-            'role': self.role
+            'role': self.role,
+            'preferences': self.preferences
         }
 
 class Event(db.Model):
@@ -89,6 +96,7 @@ class StudyResource(db.Model):
     url = db.Column(db.String(500))
     resource_type = db.Column(db.String(50))  # book, video, article, etc.
     subject = db.Column(db.String(100))
+    file_path = db.Column(db.String(500))  # For uploaded files
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     
@@ -100,6 +108,31 @@ class StudyResource(db.Model):
             'url': self.url,
             'resource_type': self.resource_type,
             'subject': self.subject,
+            'file_path': self.file_path,
             'created_at': self.created_at.isoformat(),
+            'user_id': self.user_id
+        }
+
+class Todo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text)
+    priority = db.Column(db.Integer, default=2)  # 1: High, 2: Medium, 3: Low
+    completed = db.Column(db.Boolean, default=False)
+    due_date = db.Column(db.String(10))  # YYYY-MM-DD format
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    completed_at = db.Column(db.DateTime)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'description': self.description,
+            'priority': self.priority,
+            'completed': self.completed,
+            'due_date': self.due_date,
+            'created_at': self.created_at.isoformat(),
+            'completed_at': self.completed_at.isoformat() if self.completed_at else None,
             'user_id': self.user_id
         }

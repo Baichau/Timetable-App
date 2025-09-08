@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}Timetable - EduFocus{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timetable-container {
+        max-width: 1200px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
+
+    .timetable-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .timetable-controls {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .timetable-grid {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        gap: 1px;
+        background-color: var(--border-color);
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+
+    .timetable-cell {
+        background-color: var(--card-bg);
+        padding: 10px;
+        min-height: 80px;
+    }
+
+    .timetable-time {
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(58, 134, 255, 0.1);
+    }
+
+    .timetable-day {
+        text-align: center;
+        font-weight: 600;
+        background-color: rgba(58, 134, 255, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .timetable-event {
+        background-color: var(--primary-color);
+        color: white;
+        padding: 8px;
+        border-radius: 4px;
+        margin-bottom: 5px;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .timetable-event:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+
+    .current-time {
+        background-color: rgba(255, 0, 110, 0.1);
+        border-left: 3px solid var(--accent-color);
+    }
+
+    .week-navigation {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    @media (max-width: 768px) {
+        .timetable-grid {
+            grid-template-columns: 60px repeat(7, 1fr);
+            font-size: 0.8rem;
+        }
+        
+        .timetable-cell {
+            padding: 5px;
+            min-height: 60px;
+        }
+        
+        .timetable-event {
+            font-size: 0.7rem;
+            padding: 4px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="timetable-container">
+    <div class="timetable-header">
+        <h1>Weekly Timetable</h1>
+        <div class="timetable-controls">
+            <div class="week-navigation">
+                <button id="prev-week" class="btn btn-secondary">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span id="current-week">Current Week</span>
+                <button id="next-week" class="btn btn-secondary">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <button id="add-event-btn" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Event
+            </button>
+        </div>
+    </div>
+
+    <div class="timetable-grid" id="timetable-grid">
+        <!-- Time labels -->
+        <div class="timetable-cell timetable-corner"></div>
+        <div class="timetable-cell timetable-day">Monday</div>
+        <div class="timetable-cell timetable-day">Tuesday</div>
+        <div class="timetable-cell timetable-day">Wednesday</div>
+        <div class="timetable-cell timetable-day">Thursday</div>
+        <div class="timetable-cell timetable-day">Friday</div>
+        <div class="timetable-cell timetable-day">Saturday</div>
+        <div class="timetable-cell timetable-day">Sunday</div>
+
+        <!-- Time slots will be populated by JavaScript -->
+    </div>
+</div>
+
+<!-- Event Modal -->
+<div id="event-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2 id="modal-title">Add Event</h2>
+        <form id="event-form">
+            <input type="hidden" id="event-id">
+            <div class="form-group">
+                <label for="event-title">Title</label>
+                <input type="text" id="event-title" required>
+            </div>
+            <div class="form-group">
+                <label for="event-description">Description</label>
+                <textarea id="event-description" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="event-day">Day</label>
+                <select id="event-day" required>
+                    <option value="0">Monday</option>
+                    <option value="1">Tuesday</option>
+                    <option value="2">Wednesday</option>
+                    <option value="3">Thursday</option>
+                    <option value="4">Friday</option>
+                    <option value="5">Saturday</option>
+                    <option value="6">Sunday</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="event-start">Start Time</label>
+                <input type="time" id="event-start" required>
+            </div>
+            <div class="form-group">
+                <label for="event-end">End Time</label>
+                <input type="time" id="event-end" required>
+            </div>
+            <div class="form-group">
+                <label for="event-color">Color</label>
+                <input type="color" id="event-color" value="#3a86ff">
+            </div>
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="event-recurring"> Recurring Event
+                </label>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancel-event">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Event</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/timetable.js') }}"></script>
+{% endblock %}

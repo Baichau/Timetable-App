@@ -1,3 +1,4 @@
+// static/js/timetable.js
 document.addEventListener('DOMContentLoaded', function() {
     // DOM elements
     const timetableGrid = document.getElementById('timetable-grid');
@@ -5,6 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const eventModal = document.getElementById('event-modal');
     const eventForm = document.getElementById('event-form');
     const closeModalBtn = document.querySelector('.close-modal');
+    const cancelEventBtn = document.getElementById('cancel-event');
     
     // State
     let events = [];
@@ -12,11 +14,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize
     loadEvents();
-    renderTimetable();
     
     // Event listeners
     addEventBtn.addEventListener('click', openEventModal);
     closeModalBtn.addEventListener('click', closeEventModal);
+    if (cancelEventBtn) cancelEventBtn.addEventListener('click', closeEventModal);
     
     eventForm.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -214,15 +216,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function saveEvent() {
-        const formData = new FormData(eventForm);
         const eventData = {
-            title: formData.get('title'),
-            description: formData.get('description'),
-            day_of_week: parseInt(formData.get('day')),
-            start_time: formData.get('start'),
-            end_time: formData.get('end'),
-            color: formData.get('color'),
-            is_recurring: formData.get('recurring') === 'on'
+            title: document.getElementById('event-title').value,
+            description: document.getElementById('event-description').value,
+            day_of_week: parseInt(document.getElementById('event-day').value),
+            start_time: document.getElementById('event-start').value,
+            end_time: document.getElementById('event-end').value,
+            color: document.getElementById('event-color').value,
+            is_recurring: document.getElementById('event-recurring').checked
         };
         
         const url = editingEventId ? `/api/events/${editingEventId}` : '/api/events';
@@ -282,13 +283,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return date;
     }
     
-    // Utility functions
-    function showNotification(message, type = 'info') {
-        // Use the notification function from main.js
-        if (typeof window.showNotification === 'function') {
-            window.showNotification(message, type);
-        } else {
-            alert(`${type}: ${message}`);
-        }
-    }
+    // Make showNotification available globally
+    window.showNotification = showNotification;
 });

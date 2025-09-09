@@ -1,18 +1,17 @@
-# clean_init.py
-import os
+# init.py - Database initialization script
 from app import app, db
+from app import User  # Import User from app instead of models
+from werkzeug.security import generate_password_hash
 
 print("🧹 Creating clean database...")
 
 with app.app_context():
-    # Create all tables from scratch
+    # Drop all tables and recreate them
+    db.drop_all()
     db.create_all()
     print("✅ Database tables created successfully!")
     
     # Create a test user
-    from models import User
-    from werkzeug.security import generate_password_hash
-    
     test_user = User(
         username='testuser',
         email='test@edufocus.com',

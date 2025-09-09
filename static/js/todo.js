@@ -1,3 +1,4 @@
+// static/js/todo.js
 document.addEventListener('DOMContentLoaded', function() {
     // DOM elements
     const todoForm = document.querySelector('.todo-form');
@@ -294,4 +295,5 @@ document.addEventListener('DOMContentLoaded', function() {
     // Make functions available globally if needed
     window.addTodo = addTodo;
     window.loadTodos = loadTodos;
+    window.showNotification = showNotification;
 });

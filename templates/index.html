@@ -1,133 +1,71 @@
 <!-- templates/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduFocus - Educational Platform</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-logo">
-                <i class="fas fa-graduation-cap"></i>
-                <span>EduFocus</span>
-            </div>
-            <div class="nav-menu">
-                <a href="{{ url_for('index') }}" class="nav-link active">Home</a>
-                <a href="{{ url_for('timetable') }}" class="nav-link">Timetable</a>
-                <a href="{{ url_for('focus_timer') }}" class="nav-link">Focus Timer</a>
-                <a href="{{ url_for('resources') }}" class="nav-link">Resources</a>
-                <a href="#" class="nav-link">Login</a>
-            </div>
-            <div class="nav-toggle" id="mobile-menu">
-                <span class="bar"></span>
-                <span class="bar"></span>
-                <span class="bar"></span>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <section class="hero">
-        <div class="hero-content">
-            <h1>Organize Your Learning Journey</h1>
-            <p>Plan your schedule, focus on studying, and access educational resources all in one place.</p>
-            <div class="hero-buttons">
-                <a href="{{ url_for('timetable') }}" class="btn btn-primary">View Timetable</a>
-                <a href="{{ url_for('focus_timer') }}" class="btn btn-secondary">Start Focusing</a>
-            </div>
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <h1>Organize Your Learning Journey</h1>
+        <p>Plan your schedule, focus on studying, and access educational resources all in one place.</p>
+        <div class="hero-buttons">
+            <a href="{{ url_for('timetable') }}" class="btn btn-primary">View Timetable</a>
+            <a href="{{ url_for('focus_timer') }}" class="btn btn-secondary">Start Focusing</a>
         </div>
-        <div class="hero-image">
-            <img src="{{ url_for('static', filename='images/study.svg') }}" alt="Study Illustration">
-        </div>
-    </section>
+    </div>
+    <div class="hero-image">
+        <img src="{{ url_for('static', filename='images/study.svg') }}" alt="Study Illustration">
+    </div>
+</section>
 
-    <section class="features">
-        <h2>Why Choose EduFocus?</h2>
-        <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-calendar-alt"></i>
-                </div>
-                <h3>Smart Timetable</h3>
-                <p>Organize your classes, assignments, and study sessions with our intuitive timetable.</p>
+<section class="features">
+    <h2>Why Choose EduFocus?</h2>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-calendar-alt"></i>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-clock"></i>
-                </div>
-                <h3>Focus Timer</h3>
-                <p>Use the Pomodoro technique to enhance your concentration and productivity.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-bell"></i>
-                </div>
-                <h3>Smart Notifications</h3>
-                <p>Get reminders for upcoming classes and deadlines so you never miss anything important.</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <i class="fas fa-book"></i>
-                </div>
-                <h3>Learning Resources</h3>
-                <p>Access curated educational materials and organize your study resources.</p>
-            </div>
+            <h3>Smart Timetable</h3>
+            <p>Organize your classes, assignments, and study sessions with our intuitive timetable.</p>
         </div>
-    </section>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <h3>Focus Timer</h3>
+            <p>Use the Pomodoro technique to enhance your concentration and productivity.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-bell"></i>
+            </div>
+            <h3>Smart Notifications</h3>
+            <p>Get reminders for upcoming classes and deadlines so you never miss anything important.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">
+                <i class="fas fa-book"></i>
+            </div>
+            <h3>Learning Resources</h3>
+            <p>Access curated educational materials and organize your study resources.</p>
+        </div>
+    </div>
+</section>
 
-    <section class="stats">
-        <div class="stat-item">
-            <h3>2,500+</h3>
-            <p>Active Students</p>
-        </div>
-        <div class="stat-item">
-            <h3>98%</h3>
-            <p>Report Improved Grades</p>
-        </div>
-        <div class="stat-item">
-            <h3>45%</h3>
-            <p>More Productive Study Time</p>
-        </div>
-        <div class="stat-item">
-            <h3>24/7</h3>
-            <p>Always Available</p>
-        </div>
-    </section>
-
-    <footer class="footer">
-        <div class="footer-content">
-            <div class="footer-section">
-                <h3>EduFocus</h3>
-                <p>Your all-in-one educational platform for better learning and time management.</p>
-            </div>
-            <div class="footer-section">
-                <h4>Quick Links</h4>
-                <ul>
-                    <li><a href="{{ url_for('index') }}">Home</a></li>
-                    <li><a href="{{ url_for('timetable') }}">Timetable</a></li>
-                    <li><a href="{{ url_for('focus_timer') }}">Focus Timer</a></li>
-                    <li><a href="{{ url_for('resources') }}">Resources</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Contact Us</h4>
-                <p><i class="fas fa-envelope"></i> support@edufocus.com</p>
-                <div class="social-icons">
-                    <a href="#"><i class="fab fa-facebook"></i></a>
-                    <a href="#"><i class="fab fa-twitter"></i></a>
-                    <a href="#"><i class="fab fa-instagram"></i></a>
-                    <a href="#"><i class="fab fa-linkedin"></i></a>
-                </div>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2023 EduFocus. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-</body>
-</html>
+<section class="stats">
+    <div class="stat-item">
+        <h3>2,500+</h3>
+        <p>Active Students</p>
+    </div>
+    <div class="stat-item">
+        <h3>98%</h3>
+        <p>Report Improved Grades</p>
+    </div>
+    <div class="stat-item">
+        <h3>45%</h3>
+        <p>More Productive Study Time</p>
+    </div>
+    <div class="stat-item">
+        <h3>24/7</h3>
+        <p>Always Available</p>
+    </div>
+</section>
+{% endblock %}

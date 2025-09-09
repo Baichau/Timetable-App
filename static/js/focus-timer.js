@@ -8,7 +8,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const resetButton = document.getElementById('reset-btn');
     const modeButtons = document.querySelectorAll('.mode-btn');
     const progressRing = document.querySelector('.progress-ring-circle');
-    const timerSound = document.getElementById('timer-sound');
     
     // Stats elements
     const sessionsCompletedElement = document.getElementById('sessions-completed');
@@ -122,11 +121,6 @@ document.addEventListener('DOMContentLoaded', function() {
         startButton.disabled = false;
         pauseButton.disabled = true;
         
-        // Play sound if enabled
-        if (notificationSoundCheckbox.checked) {
-            timerSound.play();
-        }
-        
         // Show notification
         showNotification(`${currentMode === 'pomodoro' ? 'Focus session' : 'Break'} completed!`, 'success');
         
@@ -136,6 +130,9 @@ document.addEventListener('DOMContentLoaded', function() {
             totalFocusTime += 25;
             updateStats();
             saveUserData();
+            
+            // Save focus session to database
+            saveFocusSession();
         }
         
         // Auto-start next session if enabled
@@ -161,6 +158,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 startTimer();
             }
         }
+    }
+    
+    function saveFocusSession() {
+        fetch('/api/focus-sessions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                duration: 25,
+                session_type: 'pomodoro',
+                completed: true
+            })
+        })
+        .catch(error => {
+            console.error('Error saving focus session:', error);
+        });
     }
     
     function updateDisplay() {

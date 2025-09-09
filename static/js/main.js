@@ -66,6 +66,7 @@ function showNotification(message, type = 'info') {
     toast.innerHTML = `
         <i class="fas ${icon}"></i>
         <span>${message}</span>
+        <button class="toast-close">&times;</button>
     `;
     
     container.appendChild(toast);
@@ -73,10 +74,19 @@ function showNotification(message, type = 'info') {
     // Show toast
     setTimeout(() => toast.classList.add('show'), 100);
     
-    // Remove toast after 5 seconds
-    setTimeout(() => {
+    // Add close button event listener
+    const closeBtn = toast.querySelector('.toast-close');
+    closeBtn.addEventListener('click', () => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
+    });
+    
+    // Remove toast after 5 seconds
+    setTimeout(() => {
+        if (toast.parentNode) {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }
     }, 5000);
 }
 

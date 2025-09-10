@@ -1,949 +1,499 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EduFocus - Timetable</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #4361ee;
-            --secondary-color: #3f37c9;
-            --accent-color: #4895ef;
-            --light-color: #f8f9fa;
-            --dark-color: #212529;
-            --success-color: #4cc9f0;
-            --warning-color: #f72585;
-            --error-color: #e63946;
-            --border-radius: 12px;
-            --card-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
-            --transition: all 0.3s ease;
-        }
+<!-- templates/timetable.html -->
+{% extends "base.html" %}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+{% block title %}Timetable - EduFocus{% endblock %}
 
-        body {
-            background-color: #f5f7ff;
-            color: var(--dark-color);
-            line-height: 1.6;
-            padding: 0;
-        }
+{% block extra_css %}
+<style>
+    .timetable-container {
+        max-width: 1400px;
+        margin: 40px auto;
+        padding: 0 20px;
+    }
 
-        /* Navigation */
-        .navbar {
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 15px 0;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
+    .timetable-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        padding: 20px;
+        background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
+        border-radius: var(--border-radius);
+        color: white;
+        box-shadow: var(--box-shadow);
+    }
 
-        .nav-container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 0 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .timetable-header h1 {
+        font-weight: 700;
+        font-size: 2.2rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-        .nav-logo {
-            display: flex;
-            align-items: center;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--primary-color);
-            text-decoration: none;
-        }
+    .current-time-display {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 10px 20px;
+        border-radius: 30px;
+        font-weight: 600;
+        backdrop-filter: blur(10px);
+    }
 
-        .nav-logo i {
-            margin-right: 10px;
-        }
+    .timetable-controls {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+    }
 
-        .nav-menu {
-            display: flex;
-            align-items: center;
-            gap: 25px;
-        }
+    .week-navigation {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: white;
+        padding: 8px;
+        border-radius: 30px;
+        box-shadow: var(--box-shadow);
+    }
 
-        .nav-link {
-            color: var(--dark-color);
-            text-decoration: none;
-            font-weight: 500;
-            transition: var(--transition);
-            padding: 8px 12px;
-            border-radius: var(--border-radius);
-        }
+    .week-navigation span {
+        font-weight: 600;
+        min-width: 150px;
+        text-align: center;
+        color: var(--dark-color);
+    }
 
-        .nav-link:hover, .nav-link.active {
-            background-color: var(--primary-color);
-            color: white;
-        }
+    .timetable {
+        display: grid;
+        grid-template-columns: 80px repeat(7, 1fr);
+        gap: 12px;
+        margin-bottom: 40px;
+    }
 
-        .container {
-            max-width: 1400px;
-            margin: 40px auto;
-            padding: 0 20px;
-        }
+    .time-label {
+        background: var(--card-bg);
+        padding: 15px 10px;
+        text-align: center;
+        font-weight: 600;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+    }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: linear-gradient(120deg, var(--primary-color), var(--secondary-color));
-            border-radius: var(--border-radius);
-            color: white;
-            box-shadow: var(--card-shadow);
-        }
+    .day-header {
+        background: var(--card-bg);
+        padding: 15px;
+        text-align: center;
+        font-weight: 700;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        display: flex;
+        flex-direction: column;
+    }
 
-        .header h1 {
-            font-weight: 700;
-            font-size: 2.2rem;
-        }
+    .day-date {
+        font-size: 0.8rem;
+        font-weight: normal;
+        color: var(--gray-color);
+        margin-top: 5px;
+    }
 
-        .current-time-display {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 10px 20px;
-            border-radius: 30px;
-            font-weight: 600;
-            backdrop-filter: blur(10px);
-        }
+    .time-slot {
+        background: var(--card-bg);
+        border-radius: var(--border-radius);
+        min-height: 80px;
+        padding: 10px;
+        position: relative;
+        box-shadow: var(--box-shadow);
+        transition: var(--transition);
+    }
 
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 25px;
-            flex-wrap: wrap;
-        }
+    .time-slot:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
 
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: var(--transition);
-            display: flex;
-            align-items: center;
+    .event {
+        background: var(--accent-color);
+        color: white;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: var(--transition);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .event::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 5px;
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .event:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+
+    .event-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
+    .event-time {
+        font-size: 0.75rem;
+        opacity: 0.9;
+    }
+
+    .event-actions {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        display: none;
+        gap: 5px;
+    }
+
+    .event:hover .event-actions {
+        display: flex;
+    }
+
+    .event-actions button {
+        background: rgba(255, 255, 255, 0.3);
+        border: none;
+        border-radius: 4px;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        color: white;
+        font-size: 0.7rem;
+    }
+
+    .event-actions button:hover {
+        background: rgba(255, 255, 255, 0.5);
+    }
+
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        z-index: 100;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: var(--card-bg);
+        padding: 30px;
+        border-radius: var(--border-radius);
+        width: 90%;
+        max-width: 500px;
+        box-shadow: var(--box-shadow);
+        position: relative;
+    }
+
+    .close-modal {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--gray-color);
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-color);
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: var(--transition);
+        background-color: var(--card-bg);
+        color: var(--text-color);
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        border-color: var(--accent-color);
+        outline: none;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 25px;
+    }
+
+    .recurring-options {
+        background: rgba(0, 0, 0, 0.05);
+        padding: 15px;
+        border-radius: 8px;
+        margin-top: 15px;
+    }
+
+    .delete-options {
+        margin: 20px 0;
+    }
+
+    .delete-options label {
+        display: block;
+        margin-bottom: 10px;
+        cursor: pointer;
+        color: var(--text-color);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: var(--gray-color);
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+        color: var(--border-color);
+    }
+    
+    .empty-state p {
+        font-size: 1.2rem;
+        margin-bottom: 20px;
+    }
+
+    @media (max-width: 992px) {
+        .timetable {
+            grid-template-columns: 60px repeat(7, 1fr);
             gap: 8px;
         }
-
-        .btn-primary {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .btn-secondary {
-            background: white;
-            color: var(--primary-color);
-            border: 2px solid var(--primary-color);
-        }
-
-        .btn-danger {
-            background: var(--error-color);
-            color: white;
-        }
-
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-primary:hover {
-            background: var(--secondary-color);
-        }
-
-        .btn-secondary:hover {
-            background: #f0f0f0;
-        }
-
-        .btn-danger:hover {
-            background: #d90429;
-        }
-
-        .week-navigation {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: white;
-            padding: 8px;
-            border-radius: 30px;
-            box-shadow: var(--card-shadow);
-        }
-
-        .week-navigation span {
-            font-weight: 600;
-            min-width: 150px;
-            text-align: center;
-        }
-
-        .timetable {
-            display: grid;
-            grid-template-columns: 80px repeat(7, 1fr);
-            gap: 12px;
-            margin-bottom: 40px;
-        }
-
-        .time-label {
-            background: white;
-            padding: 15px 10px;
-            text-align: center;
-            font-weight: 600;
-            border-radius: var(--border-radius);
-            box-shadow: var(--card-shadow);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.9rem;
-        }
-
-        .day-header {
-            background: white;
-            padding: 15px;
-            text-align: center;
-            font-weight: 700;
-            border-radius: var(--border-radius);
-            box-shadow: var(--card-shadow);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .day-date {
+        
+        .time-label, .day-header {
+            padding: 10px 5px;
             font-size: 0.8rem;
-            font-weight: normal;
-            color: #6c757d;
-            margin-top: 5px;
         }
-
+        
         .time-slot {
-            background: white;
-            border-radius: var(--border-radius);
-            min-height: 80px;
-            padding: 10px;
-            position: relative;
-            box-shadow: var(--card-shadow);
-            transition: var(--transition);
+            min-height: 60px;
         }
-
-        .time-slot:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
-        }
-
+        
         .event {
-            background: var(--accent-color);
-            color: white;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: var(--transition);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .event::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 5px;
-            background: rgba(255, 255, 255, 0.5);
-        }
-
-        .event:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-
-        .event-title {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .event-time {
+            padding: 8px;
             font-size: 0.75rem;
-            opacity: 0.9;
         }
+    }
 
-        .event-actions {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            display: none;
-            gap: 5px;
-        }
-
-        .event:hover .event-actions {
-            display: flex;
-        }
-
-        .event-actions button {
-            background: rgba(255, 255, 255, 0.3);
-            border: none;
-            border-radius: 4px;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: white;
-            font-size: 0.7rem;
-        }
-
-        .event-actions button:hover {
-            background: rgba(255, 255, 255, 0.5);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(5px);
-            z-index: 100;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: var(--border-radius);
-            width: 90%;
-            max-width: 500px;
-            box-shadow: var(--card-shadow);
-            position: relative;
-        }
-
-        .close-modal {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #6c757d;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 12px 15px;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: var(--transition);
-        }
-
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            border-color: var(--accent-color);
-            outline: none;
-        }
-
-        .form-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 15px;
-            margin-top: 25px;
-        }
-
-        .recurring-options {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
-
-        .delete-options {
-            margin: 20px 0;
-        }
-
-        .delete-options label {
-            display: block;
-            margin-bottom: 10px;
-            cursor: pointer;
-        }
-
-        @media (max-width: 992px) {
-            .timetable {
-                grid-template-columns: 60px repeat(7, 1fr);
-                gap: 8px;
-            }
-            
-            .time-label, .day-header {
-                padding: 10px 5px;
-                font-size: 0.8rem;
-            }
-            
-            .time-slot {
-                min-height: 60px;
-            }
-            
-            .event {
-                padding: 8px;
-                font-size: 0.75rem;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .nav-menu {
-                display: none;
-            }
-            
-            .header {
-                flex-direction: column;
-                text-align: center;
-                gap: 15px;
-            }
-            
-            .controls {
-                justify-content: center;
-            }
-            
-            .timetable {
-                overflow-x: auto;
-                display: block;
-                white-space: nowrap;
-            }
-            
-            .time-row {
-                display: flex;
-                margin-bottom: 10px;
-            }
-            
-            .time-label {
-                width: 60px;
-                flex-shrink: 0;
-                margin-right: 10px;
-            }
-            
-            .day-column {
-                display: inline-block;
-                width: 150px;
-                margin-right: 10px;
-                vertical-align: top;
-            }
-            
-            .day-header {
-                margin-bottom: 10px;
-            }
-        }
-        
-        .empty-state {
+    @media (max-width: 768px) {
+        .timetable-header {
+            flex-direction: column;
             text-align: center;
-            padding: 40px;
-            color: #6c757d;
+            gap: 15px;
         }
         
-        .empty-state i {
-            font-size: 3rem;
-            margin-bottom: 15px;
-            color: #ced4da;
+        .timetable-controls {
+            justify-content: center;
         }
         
-        .empty-state p {
-            font-size: 1.2rem;
-            margin-bottom: 20px;
+        .timetable {
+            overflow-x: auto;
+            display: block;
+            white-space: nowrap;
         }
-    </style>
-</head>
-<body>
-    <!-- Navigation -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <a href="#" class="nav-logo">
-                <i class="fas fa-graduation-cap"></i> EduFocus
-            </a>
-            <div class="nav-menu">
-                <a href="#" class="nav-link">Home</a>
-                <a href="#" class="nav-link active">Timetable</a>
-                <a href="#" class="nav-link">Focus Timer</a>
-                <a href="#" class="nav-link">To-Do List</a>
-                <a href="#" class="nav-link">Resources</a>
-                <a href="#" class="nav-link">Logout</a>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container">
-        <div class="header">
-            <h1><i class="fas fa-calendar-alt"></i> Weekly Timetable</h1>
-            <div class="current-time-display">
-                <i class="fas fa-clock"></i> <span id="current-time">Loading...</span>
-            </div>
-        </div>
-
-        <div class="controls">
-            <div class="week-navigation">
-                <button id="prev-week" class="btn btn-secondary">
-                    <i class="fas fa-chevron-left"></i>
-                </button>
-                <span id="current-week">September 8 - September 14, 2025</span>
-                <button id="next-week" class="btn btn-secondary">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-            </div>
-            <button id="add-event-btn" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Event
-            </button>
-            <button id="delete-all-btn" class="btn btn-danger">
-                <i class="fas fa-trash"></i> Delete All
-            </button>
-        </div>
-
-        <div class="timetable" id="timetable">
-            <!-- Time labels column -->
-            <div class="time-label">Time</div>
-            <div class="day-header">Monday <span class="day-date">Sep 8</span></div>
-            <div class="day-header">Tuesday <span class="day-date">Sep 9</span></div>
-            <div class="day-header">Wednesday <span class="day-date">Sep 10</span></div>
-            <div class="day-header">Thursday <span class="day-date">Sep 11</span></div>
-            <div class="day-header">Friday <span class="day-date">Sep 12</span></div>
-            <div class="day-header">Saturday <span class="day-date">Sep 13</span></div>
-            <div class="day-header">Sunday <span class="day-date">Sep 14</span></div>
-
-            <!-- Time slots will be populated by JavaScript -->
-        </div>
         
-        <div id="empty-state" class="empty-state" style="display: none;">
-            <i class="fas fa-calendar-plus"></i>
-            <p>Your timetable is empty</p>
-            <button id="add-first-event" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Your First Event
-            </button>
+        .time-row {
+            display: flex;
+            margin-bottom: 10px;
+        }
+        
+        .time-label {
+            width: 60px;
+            flex-shrink: 0;
+            margin-right: 10px;
+        }
+        
+        .day-column {
+            display: inline-block;
+            width: 150px;
+            margin-right: 10px;
+            vertical-align: top;
+        }
+        
+        .day-header {
+            margin-bottom: 10px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="timetable-container">
+    <div class="timetable-header">
+        <h1><i class="fas fa-calendar-alt"></i> Weekly Timetable</h1>
+        <div class="current-time-display">
+            <i class="fas fa-clock"></i> <span id="current-time">Loading...</span>
         </div>
     </div>
 
-    <!-- Event Modal -->
-    <div id="event-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2 id="modal-title">Add New Event</h2>
-            <form id="event-form">
-                <input type="hidden" id="event-id">
-                <div class="form-group">
-                    <label for="event-title">Event Title</label>
-                    <input type="text" id="event-title" placeholder="Enter event title" required>
-                </div>
-                <div class="form-group">
-                    <label for="event-description">Description</label>
-                    <textarea id="event-description" rows="3" placeholder="Enter event description"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="event-day">Day</label>
-                    <select id="event-day" required>
-                        <option value="0">Monday</option>
-                        <option value="1">Tuesday</option>
-                        <option value="2">Wednesday</option>
-                        <option value="3">Thursday</option>
-                        <option value="4">Friday</option>
-                        <option value="5">Saturday</option>
-                        <option value="6">Sunday</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="event-start">Start Time</label>
-                    <input type="time" id="event-start" required>
-                </div>
-                <div class="form-group">
-                    <label for="event-end">End Time</label>
-                    <input type="time" id="event-end" required>
-                </div>
-                <div class="form-group">
-                    <label for="event-color">Color</label>
-                    <input type="color" id="event-color" value="#4895ef">
-                </div>
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="event-recurring"> Recurring Event (Weekly)
-                    </label>
-                    <div class="recurring-options">
-                        <label for="event-repeat-until">Repeat until</label>
-                        <input type="date" id="event-repeat-until">
-                    </div>
-                </div>
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" id="cancel-event">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Event</button>
-                </div>
-            </form>
+    <div class="timetable-controls">
+        <div class="week-navigation">
+            <button id="prev-week" class="btn btn-secondary">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span id="current-week">September 8 - September 14, 2025</span>
+            <button id="next-week" class="btn btn-secondary">
+                <i class="fas fa-chevron-right"></i>
+            </button>
         </div>
+        <button id="add-event-btn" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Event
+        </button>
+        <button id="delete-all-btn" class="btn btn-danger">
+            <i class="fas fa-trash"></i> Delete All
+        </button>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-delete-modal">&times;</span>
-            <h2>Delete Event</h2>
-            <p>Are you sure you want to delete this event?</p>
-            <div class="delete-options">
+    <div class="timetable" id="timetable">
+        <!-- Time labels column -->
+        <div class="time-label">Time</div>
+        <div class="day-header">Monday <span class="day-date">Sep 8</span></div>
+        <div class="day-header">Tuesday <span class="day-date">Sep 9</span></div>
+        <div class="day-header">Wednesday <span class="day-date">Sep 10</span></div>
+        <div class="day-header">Thursday <span class="day-date">Sep 11</span></div>
+        <div class="day-header">Friday <span class="day-date">Sep 12</span></div>
+        <div class="day-header">Saturday <span class="day-date">Sep 13</span></div>
+        <div class="day-header">Sunday <span class="day-date">Sep 14</span></div>
+
+        <!-- Time slots will be populated by JavaScript -->
+    </div>
+    
+    <div id="empty-state" class="empty-state" style="display: none;">
+        <i class="fas fa-calendar-plus"></i>
+        <p>Your timetable is empty</p>
+        <button id="add-first-event" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Your First Event
+        </button>
+    </div>
+</div>
+
+<!-- Event Modal -->
+<div id="event-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2 id="modal-title">Add New Event</h2>
+        <form id="event-form">
+            <input type="hidden" id="event-id">
+            <div class="form-group">
+                <label for="event-title">Event Title</label>
+                <input type="text" id="event-title" placeholder="Enter event title" required>
+            </div>
+            <div class="form-group">
+                <label for="event-description">Description</label>
+                <textarea id="event-description" rows="3" placeholder="Enter event description"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="event-day">Day</label>
+                <select id="event-day" required>
+                    <option value="0">Monday</option>
+                    <option value="1">Tuesday</option>
+                    <option value="2">Wednesday</option>
+                    <option value="3">Thursday</option>
+                    <option value="4">Friday</option>
+                    <option value="5">Saturday</option>
+                    <option value="6">Sunday</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="event-start">Start Time</label>
+                <input type="time" id="event-start" required>
+            </div>
+            <div class="form-group">
+                <label for="event-end">End Time</label>
+                <input type="time" id="event-end" required>
+            </div>
+            <div class="form-group">
+                <label for="event-color">Color</label>
+                <input type="color" id="event-color" value="#4895ef">
+            </div>
+            <div class="form-group">
                 <label>
-                    <input type="radio" name="delete-option" value="this" checked> Delete only this event
+                    <input type="checkbox" id="event-recurring"> Recurring Event (Weekly)
                 </label>
-                <label>
-                    <input type="radio" name="delete-option" value="all"> Delete all events in the series
-                </label>
+                <div class="recurring-options">
+                    <label for="event-repeat-until">Repeat until</label>
+                    <input type="date" id="event-repeat-until">
+                </div>
             </div>
             <div class="form-actions">
-                <button type="button" class="btn btn-secondary" id="cancel-delete">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirm-delete">Delete</button>
+                <button type="button" class="btn btn-secondary" id="cancel-event">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Event</button>
             </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-delete-modal">&times;</span>
+        <h2>Delete Event</h2>
+        <p>Are you sure you want to delete this event?</p>
+        <div class="delete-options">
+            <label>
+                <input type="radio" name="delete-option" value="this" checked> Delete only this event
+            </label>
+            <label>
+                <input type="radio" name="delete-option" value="all"> Delete all events in the series
+            </label>
+        </div>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-delete">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirm-delete">Delete</button>
         </div>
     </div>
+</div>
 
-    <!-- Delete All Events Modal -->
-    <div id="delete-all-modal" class="modal">
-        <div class="modal-content">
-            <span class="close-delete-all-modal">&times;</span>
-            <h2>Delete All Events</h2>
-            <p>Are you sure you want to delete all events from your timetable? This action cannot be undone.</p>
-            <div class="form-actions">
-                <button type="button" class="btn btn-secondary" id="cancel-delete-all">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirm-delete-all">Delete All</button>
-            </div>
+<!-- Delete All Events Modal -->
+<div id="delete-all-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-delete-all-modal">&times;</span>
+        <h2>Delete All Events</h2>
+        <p>Are you sure you want to delete all events from your timetable? This action cannot be undone.</p>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-delete-all">Cancel</button>
+            <button type="button" class="btn btn-danger" class="btn btn-danger" id="confirm-delete-all">Delete All</button>
         </div>
     </div>
+</div>
+{% endblock %}
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Store events in localStorage
-            let events = JSON.parse(localStorage.getItem('timetableEvents')) || [];
-            let currentEventId = null;
-            let isEditing = false;
-
-            // Update current time
-            function updateCurrentTime() {
-                const now = new Date();
-                const timeString = now.toLocaleTimeString();
-                document.getElementById('current-time').textContent = timeString;
-            }
-            
-            // Initialize current time
-            updateCurrentTime();
-            setInterval(updateCurrentTime, 1000);
-            
-            // Check if timetable is empty and show empty state
-            function checkEmptyState() {
-                const emptyState = document.getElementById('empty-state');
-                if (events.length === 0) {
-                    emptyState.style.display = 'block';
-                } else {
-                    emptyState.style.display = 'none';
-                }
-            }
-            
-            // Generate time slots
-            function generateTimeSlots() {
-                const timetable = document.getElementById('timetable');
-                const startHour = 8; // 8 AM
-                const endHour = 22; // 10 PM
-                
-                // Clear existing time slots except headers
-                const existingTimeSlots = document.querySelectorAll('.time-slot');
-                existingTimeSlots.forEach(slot => slot.remove());
-                
-                for (let hour = startHour; hour <= endHour; hour++) {
-                    // Add time label
-                    const timeLabel = document.createElement('div');
-                    timeLabel.className = 'time-label';
-                    timeLabel.textContent = `${hour}:00`;
-                    timetable.appendChild(timeLabel);
-                    
-                    // Add time slots for each day
-                    for (let day = 0; day < 7; day++) {
-                        const timeSlot = document.createElement('div');
-                        timeSlot.className = 'time-slot';
-                        timeSlot.setAttribute('data-day', day);
-                        timeSlot.setAttribute('data-hour', hour);
-                        timetable.appendChild(timeSlot);
-                    }
-                }
-                
-                // Render events after generating time slots
-                renderEvents();
-                checkEmptyState();
-            }
-            
-            // Create event element
-            function createEventElement(event) {
-                const eventElement = document.createElement('div');
-                eventElement.className = 'event';
-                eventElement.style.backgroundColor = event.color;
-                eventElement.dataset.id = event.id;
-                
-                const startTime = formatTime(event.startTime);
-                const endTime = formatTime(event.endTime);
-                
-                eventElement.innerHTML = `
-                    <div class="event-title">${event.title}</div>
-                    <div class="event-time">${startTime} - ${endTime}</div>
-                    <div class="event-actions">
-                        <button class="edit-event"><i class="fas fa-edit"></i></button>
-                        <button class="delete-event"><i class="fas fa-trash"></i></button>
-                    </div>
-                `;
-                
-                // Add click event for editing
-                eventElement.querySelector('.edit-event').addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    openEditModal(event);
-                });
-                
-                // Add click event for deleting
-                eventElement.querySelector('.delete-event').addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    openDeleteModal(event);
-                });
-                
-                return eventElement;
-            }
-            
-            // Format time for display
-            function formatTime(timeString) {
-                const [hours, minutes] = timeString.split(':');
-                const hour = parseInt(hours);
-                return `${hour > 12 ? hour - 12 : hour}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
-            }
-            
-            // Render events to timetable
-            function renderEvents() {
-                // Clear all existing events
-                const existingEvents = document.querySelectorAll('.event');
-                existingEvents.forEach(event => event.remove());
-                
-                events.forEach(event => {
-                    const startHour = parseInt(event.startTime.split(':')[0]);
-                    const day = parseInt(event.day);
-                    
-                    // Find the correct time slot
-                    const timeSlot = document.querySelector(`.time-slot[data-day="${day}"][data-hour="${startHour}"]`);
-                    if (timeSlot) {
-                        const eventElement = createEventElement(event);
-                        timeSlot.appendChild(eventElement);
-                    }
-                });
-            }
-            
-            // Save events to localStorage
-            function saveEvents() {
-                localStorage.setItem('timetableEvents', JSON.stringify(events));
-                renderEvents();
-                checkEmptyState();
-            }
-            
-            // Generate a unique ID for events
-            function generateId() {
-                return Date.now().toString(36) + Math.random().toString(36).substr(2);
-            }
-            
-            // Open modal for adding new event
-            function openAddModal() {
-                document.getElementById('modal-title').textContent = 'Add New Event';
-                document.getElementById('event-form').reset();
-                document.getElementById('event-id').value = '';
-                isEditing = false;
-                modal.style.display = 'flex';
-            }
-            
-            // Open modal for editing event
-            function openEditModal(event) {
-                document.getElementById('modal-title').textContent = 'Edit Event';
-                document.getElementById('event-id').value = event.id;
-                document.getElementById('event-title').value = event.title;
-                document.getElementById('event-description').value = event.description || '';
-                document.getElementById('event-day').value = event.day;
-                document.getElementById('event-start').value = event.startTime;
-                document.getElementById('event-end').value = event.endTime;
-                document.getElementById('event-color').value = event.color;
-                document.getElementById('event-recurring').checked = event.recurring || false;
-                
-                if (event.recurring) {
-                    document.getElementById('event-repeat-until').value = event.repeatUntil || '';
-                }
-                
-                isEditing = true;
-                currentEventId = event.id;
-                modal.style.display = 'flex';
-            }
-            
-            // Open delete confirmation modal
-            function openDeleteModal(event) {
-                currentEventId = event.id;
-                deleteModal.style.display = 'flex';
-            }
-            
-            // Open delete all events modal
-            function openDeleteAllModal() {
-                if (events.length === 0) {
-                    alert("Your timetable is already empty!");
-                    return;
-                }
-                deleteAllModal.style.display = 'flex';
-            }
-            
-            // Modal functionality
-            const modal = document.getElementById('event-modal');
-            const deleteModal = document.getElementById('delete-modal');
-            const deleteAllModal = document.getElementById('delete-all-modal');
-            const addEventBtn = document.getElementById('add-event-btn');
-            const addFirstEventBtn = document.getElementById('add-first-event');
-            const deleteAllBtn = document.getElementById('delete-all-btn');
-            const cancelEventBtn = document.getElementById('cancel-event');
-            const closeModalBtn = document.querySelector('.close-modal');
-            const closeDeleteModalBtn = document.querySelector('.close-delete-modal');
-            const closeDeleteAllModalBtn = document.querySelector('.close-delete-all-modal');
-            const cancelDeleteBtn = document.getElementById('cancel-delete');
-            const confirmDeleteBtn = document.getElementById('confirm-delete');
-            const cancelDeleteAllBtn = document.getElementById('cancel-delete-all');
-            const confirmDeleteAllBtn = document.getElementById('confirm-delete-all');
-            
-            // Add event button
-            addEventBtn.addEventListener('click', openAddModal);
-            addFirstEventBtn.addEventListener('click', openAddModal);
-            
-            // Delete all events button
-            deleteAllBtn.addEventListener('click', openDeleteAllModal);
-            
-            // Close modals
-            function closeModal() {
-                modal.style.display = 'none';
-            }
-            
-            function closeDeleteModal() {
-                deleteModal.style.display = 'none';
-            }
-            
-            function closeDeleteAllModal() {
-                deleteAllModal.style.display = 'none';
-            }
-            
-            closeModalBtn.addEventListener('click', closeModal);
-            closeDeleteModalBtn.addEventListener('click', closeDeleteModal);
-            closeDeleteAllModalBtn.addEventListener('click', closeDeleteAllModal);
-            cancelEventBtn.addEventListener('click', closeModal);
-            cancelDeleteBtn.addEventListener('click', closeDeleteModal);
-            cancelDeleteAllBtn.addEventListener('click', closeDeleteAllModal);
-            
-            // Confirm delete
-            confirmDeleteBtn.addEventListener('click', function() {
-                if (currentEventId) {
-                    const deleteOption = document.querySelector('input[name="delete-option"]:checked').value;
-                    
-                    if (deleteOption === 'all') {
-                        // Delete all events in series (for recurring events)
-                        events = events.filter(event => event.id !== currentEventId && event.seriesId !== currentEventId);
-                    } else {
-                        // Delete only this event
-                        events = events.filter(event => event.id !== currentEventId);
-                    }
-                    
-                    saveEvents();
-                    closeDeleteModal();
-                }
-            });
-            
-            // Confirm delete all
-            confirmDeleteAllBtn.addEventListener('click', function() {
-                events = [];
-                saveEvents();
-                closeDeleteAllModal();
-            });
-            
-            // Form submission
-            document.getElementById('event-form').addEventListener('submit', function(e) {
-                e.preventDefault();
-                
-                const eventId = document.getElementById('event-id').value;
-                const title = document.getElementById('event-title').value;
-                const description = document.getElementById('event-description').value;
-                const day = document.getElementById('event-day').value;
-                const startTime = document.getElementById('event-start').value;
-                const endTime = document.getElementById('event-end').value;
-                const color = document.getElementById('event-color').value;
-                const recurring = document.getElementById('event-recurring').checked;
-                const repeatUntil = document.getElementById('event-repeat-until').value;
-                
-                const eventData = {
-                    id: eventId || generateId(),
-                    title,
-                    description,
-                    day,
-                    startTime,
-                    endTime,
-                    color,
-                    recurring,
-                    repeatUntil: recurring ? repeatUntil : null
-                };
-                
-                if (isEditing) {
-                    // Update existing event
-                    const index = events.findIndex(event => event.id === eventId);
-                    if (index !== -1) {
-                        events[index] = eventData;
-                    }
-                } else {
-                    // Add new event
-                    events.push(eventData);
-                }
-                
-                saveEvents();
-                closeModal();
-            });
-            
-            // Week navigation
-            document.getElementById('prev-week').addEventListener('click', function() {
-                alert('Previous week clicked (functionality preserved)');
-            });
-            
-            document.getElementById('next-week').addEventListener('click', function() {
-                alert('Next week clicked (functionality preserved)');
-            });
-            
-            // Close modals when clicking outside
-            window.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    closeModal();
-                }
-                if (e.target === deleteModal) {
-                    closeDeleteModal();
-                }
-                if (e.target === deleteAllModal) {
-                    closeDeleteAllModal();
-                }
-            });
-            
-            // Initialize the timetable
-            generateTimeSlots();
-            
-            // No sample events will be added - the timetable starts empty
-        });
-    </script>
-</body>
-</html>
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/timetable.js') }}"></script>
+{% endblock %}

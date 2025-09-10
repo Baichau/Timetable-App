@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentMode = 'pomodoro';
     let sessionsCompleted = 0;
     let totalFocusTime = 0;
+    let lastUpdateTime = Date.now();
     
     // Set up the progress ring
     const radius = progressRing.r.baseVal.value;
@@ -54,17 +55,80 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the timer display
     updateDisplay();
     
+    // Handle tab visibility change
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden) {
+            // Tab is inactive, pause the timer if it's running
+            if (isRunning) {
+                pauseTimer();
+                localStorage.setItem('timerAutoPaused', 'true');
+            }
+        } else {
+            // Tab is active again
+            if (localStorage.getItem('timerAutoPaused') === 'true') {
+                showNotification('Timer was paused because tab was inactive', 'info');
+                localStorage.removeItem('timerAutoPaused');
+            }
+        }
+    });
+    
+    // Handle page unloading
+    window.addEventListener('beforeunload', function() {
+        if (isRunning) {
+            // Save the current state including the exact time left
+            const currentTime = Date.now();
+            const elapsedSeconds = Math.floor((currentTime - lastUpdateTime) / 1000);
+            const remainingTime = timeLeft - elapsedSeconds;
+            
+            localStorage.setItem('timerRunningState', JSON.stringify({
+                isRunning: true,
+                timeLeft: remainingTime > 0 ? remainingTime : 0,
+                mode: currentMode,
+                lastUpdateTime: currentTime
+            }));
+        } else {
+            localStorage.removeItem('timerRunningState');
+        }
+    });
+    
+    // Check for running timer on page load
+    const runningState = JSON.parse(localStorage.getItem('timerRunningState') || 'null');
+    if (runningState && runningState.isRunning) {
+        // Calculate how much time has passed since the timer was running
+        const currentTime = Date.now();
+        const elapsedSeconds = Math.floor((currentTime - runningState.lastUpdateTime) / 1000);
+        timeLeft = runningState.timeLeft - elapsedSeconds;
+        
+        if (timeLeft <= 0) {
+            timeLeft = 0;
+            timerComplete();
+        } else {
+            // Resume the timer
+            currentMode = runningState.mode;
+            switchMode(getMinutesByMode(currentMode));
+            startTimer();
+        }
+        
+        localStorage.removeItem('timerRunningState');
+    }
+    
     function startTimer() {
         if (isRunning) return;
         
         isRunning = true;
         startButton.disabled = true;
         pauseButton.disabled = false;
+        lastUpdateTime = Date.now();
         
         timerInterval = setInterval(() => {
-            timeLeft--;
+            const currentTime = Date.now();
+            const elapsedSeconds = Math.floor((currentTime - lastUpdateTime) / 1000);
+            lastUpdateTime = currentTime;
+            
+            timeLeft -= elapsedSeconds;
             
             if (timeLeft <= 0) {
+                timeLeft = 0;
                 clearInterval(timerInterval);
                 timerComplete();
                 return;
@@ -121,6 +185,13 @@ document.addEventListener('DOMContentLoaded', function() {
         startButton.disabled = false;
         pauseButton.disabled = true;
         
+        // Play sound if enabled
+        if (notificationSoundCheckbox.checked) {
+            const sound = document.getElementById('timer-sound');
+            sound.currentTime = 0;
+            sound.play().catch(e => console.log('Audio play failed:', e));
+        }
+        
         // Show notification
         showNotification(`${currentMode === 'pomodoro' ? 'Focus session' : 'Break'} completed!`, 'success');
         
@@ -130,9 +201,6 @@ document.addEventListener('DOMContentLoaded', function() {
             totalFocusTime += 25;
             updateStats();
             saveUserData();
-            
-            // Save focus session to database
-            saveFocusSession();
         }
         
         // Auto-start next session if enabled
@@ -158,23 +226,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 startTimer();
             }
         }
-    }
-    
-    function saveFocusSession() {
-        fetch('/api/focus-sessions', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                duration: 25,
-                session_type: 'pomodoro',
-                completed: true
-            })
-        })
-        .catch(error => {
-            console.error('Error saving focus session:', error);
-        });
     }
     
     function updateDisplay() {
@@ -204,6 +255,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const settings = JSON.parse(localStorage.getItem('focusTimerSettings') || '{}');
         autoStartCheckbox.checked = settings.autoStart || false;
         notificationSoundCheckbox.checked = settings.notificationSound !== false;
+        
+        // Set the active mode button
+        const activeMode = getMinutesByMode(currentMode);
+        modeButtons.forEach(btn => {
+            if (parseInt(btn.dataset.minutes) === activeMode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
         
         updateStats();
     }

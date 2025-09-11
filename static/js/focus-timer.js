@@ -1,4 +1,4 @@
-// static/js/focus-timer.js
+// static/js/focus-timer.js - FIXED VERSION
 document.addEventListener('DOMContentLoaded', function() {
     // Timer elements
     const minutesElement = document.getElementById('minutes');
@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentMode = 'pomodoro';
     let sessionsCompleted = 0;
     let totalFocusTime = 0;
+    let targetTime = 0; // Target timestamp when timer should finish
     
     // Set up the progress ring
     const radius = progressRing.r.baseVal.value;
@@ -54,6 +55,41 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize the timer display
     updateDisplay();
     
+    // Handle tab visibility change
+    document.addEventListener('visibilitychange', function() {
+        if (document.hidden && isRunning) {
+            // Tab is inactive, save the target time
+            localStorage.setItem('timerTargetTime', targetTime);
+        } else if (!document.hidden && localStorage.getItem('timerTargetTime')) {
+            // Tab is active again, check if we need to resume
+            const savedTargetTime = parseInt(localStorage.getItem('timerTargetTime'));
+            if (savedTargetTime > Date.now()) {
+                // Timer was running, resume it
+                timeLeft = Math.ceil((savedTargetTime - Date.now()) / 1000);
+                startTimer();
+            } else {
+                // Timer has finished while tab was inactive
+                timeLeft = 0;
+                timerComplete();
+                localStorage.removeItem('timerTargetTime');
+            }
+        }
+    });
+    
+    // Check for running timer on page load
+    const savedTargetTime = localStorage.getItem('timerTargetTime');
+    if (savedTargetTime) {
+        const remainingTime = Math.ceil((parseInt(savedTargetTime) - Date.now()) / 1000);
+        if (remainingTime > 0) {
+            timeLeft = remainingTime;
+            startTimer();
+        } else {
+            localStorage.removeItem('timerTargetTime');
+            timeLeft = 0;
+            timerComplete();
+        }
+    }
+    
     function startTimer() {
         if (isRunning) return;
         
@@ -61,17 +97,27 @@ document.addEventListener('DOMContentLoaded', function() {
         startButton.disabled = true;
         pauseButton.disabled = false;
         
-        timerInterval = setInterval(() => {
-            timeLeft--;
-            
-            if (timeLeft <= 0) {
-                clearInterval(timerInterval);
-                timerComplete();
-                return;
-            }
-            
-            updateDisplay();
-        }, 1000);
+        // Calculate target time
+        targetTime = Date.now() + (timeLeft * 1000);
+        localStorage.setItem('timerTargetTime', targetTime);
+        
+        timerInterval = setInterval(updateTimer, 100);
+    }
+    
+    function updateTimer() {
+        const currentTime = Date.now();
+        const remainingTime = Math.ceil((targetTime - currentTime) / 1000);
+        
+        if (remainingTime <= 0) {
+            timeLeft = 0;
+            clearInterval(timerInterval);
+            localStorage.removeItem('timerTargetTime');
+            timerComplete();
+            return;
+        }
+        
+        timeLeft = remainingTime;
+        updateDisplay();
     }
     
     function pauseTimer() {
@@ -81,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
         isRunning = false;
         startButton.disabled = false;
         pauseButton.disabled = true;
+        localStorage.removeItem('timerTargetTime');
     }
     
     function resetTimer() {
@@ -88,6 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
         isRunning = false;
         startButton.disabled = false;
         pauseButton.disabled = true;
+        localStorage.removeItem('timerTargetTime');
         
         switchMode(getMinutesByMode(currentMode));
         updateDisplay();
@@ -121,6 +169,13 @@ document.addEventListener('DOMContentLoaded', function() {
         startButton.disabled = false;
         pauseButton.disabled = true;
         
+        // Play sound if enabled
+        if (notificationSoundCheckbox.checked) {
+            const sound = document.getElementById('timer-sound');
+            sound.currentTime = 0;
+            sound.play().catch(e => console.log('Audio play failed:', e));
+        }
+        
         // Show notification
         showNotification(`${currentMode === 'pomodoro' ? 'Focus session' : 'Break'} completed!`, 'success');
         
@@ -131,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function() {
             updateStats();
             saveUserData();
             
-            // Save focus session to database
+            // Save to server
             saveFocusSession();
         }
         
@@ -172,6 +227,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 completed: true
             })
         })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.message) {
+                console.error('Error saving focus session:', data.error);
+            }
+        })
         .catch(error => {
             console.error('Error saving focus session:', error);
         });
@@ -204,6 +265,16 @@ document.addEventListener('DOMContentLoaded', function() {
         const settings = JSON.parse(localStorage.getItem('focusTimerSettings') || '{}');
         autoStartCheckbox.checked = settings.autoStart || false;
         notificationSoundCheckbox.checked = settings.notificationSound !== false;
+        
+        // Set the active mode button
+        const activeMode = getMinutesByMode(currentMode);
+        modeButtons.forEach(btn => {
+            if (parseInt(btn.dataset.minutes) === activeMode) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
         
         updateStats();
     }

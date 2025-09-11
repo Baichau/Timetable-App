@@ -1,4 +1,4 @@
-// static/js/timetable.js
+// static/js/timetable.js - FIXED VERSION
 document.addEventListener('DOMContentLoaded', function() {
     // DOM elements
     const timetableGrid = document.getElementById('timetable');
@@ -9,13 +9,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeModalBtn = document.querySelector('.close-modal');
     const cancelEventBtn = document.getElementById('cancel-event');
     const deleteAllBtn = document.getElementById('delete-all-btn');
+    const currentWeekElement = document.getElementById('current-week');
     
     // State
     let events = JSON.parse(localStorage.getItem('timetableEvents')) || [];
     let editingEventId = null;
     let isEditing = false;
+    let currentWeekOffset = 0; // 0 means current week
     
     // Initialize
+    updateWeekDisplay();
     generateTimeSlots();
     updateCurrentTime();
     setInterval(updateCurrentTime, 1000);
@@ -39,20 +42,24 @@ document.addEventListener('DOMContentLoaded', function() {
         deleteAllBtn.addEventListener('click', openDeleteAllModal);
     }
     
+    // Week navigation
+    document.getElementById('prev-week').addEventListener('click', function() {
+        currentWeekOffset--;
+        updateWeekDisplay();
+        generateTimeSlots();
+    });
+    
+    document.getElementById('next-week').addEventListener('click', function() {
+        currentWeekOffset++;
+        updateWeekDisplay();
+        generateTimeSlots();
+    });
+    
     // Close modal when clicking outside
     eventModal.addEventListener('click', function(e) {
         if (e.target === eventModal) {
             closeEventModal();
         }
-    });
-    
-    // Week navigation
-    document.getElementById('prev-week').addEventListener('click', function() {
-        alert('Previous week clicked (functionality preserved)');
-    });
-    
-    document.getElementById('next-week').addEventListener('click', function() {
-        alert('Next week clicked (functionality preserved)');
     });
     
     // Delete modals
@@ -104,6 +111,42 @@ document.addEventListener('DOMContentLoaded', function() {
         const now = new Date();
         const timeString = now.toLocaleTimeString();
         document.getElementById('current-time').textContent = timeString;
+    }
+    
+    function updateWeekDisplay() {
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay() + 1 + (currentWeekOffset * 7)); // Monday of the week
+        
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday of the week
+        
+        const options = { month: 'long', day: 'numeric' };
+        const startStr = startOfWeek.toLocaleDateString('en-US', options);
+        const endStr = endOfWeek.toLocaleDateString('en-US', { 
+            month: 'long', 
+            day: 'numeric', 
+            year: 'numeric' 
+        });
+        
+        currentWeekElement.textContent = `${startStr} - ${endStr}`;
+        
+        // Update day headers with dates
+        const dayHeaders = document.querySelectorAll('.day-header');
+        const dayDates = document.querySelectorAll('.day-date');
+        
+        for (let i = 0; i < 7; i++) {
+            const dayDate = new Date(startOfWeek);
+            dayDate.setDate(startOfWeek.getDate() + i);
+            
+            const dayName = dayDate.toLocaleDateString('en-US', { weekday: 'long' });
+            const dateStr = dayDate.toLocaleDateString('en-US', { 
+                month: 'short', 
+                day: 'numeric' 
+            });
+            
+            dayHeaders[i].innerHTML = `${dayName} <span class="day-date">${dateStr}</span>`;
+        }
     }
     
     function checkEmptyState() {

@@ -1,4 +1,4 @@
-// static/js/focus-timer.js
+// static/js/focus-timer.js - FIXED VERSION
 document.addEventListener('DOMContentLoaded', function() {
     // Timer elements
     const minutesElement = document.getElementById('minutes');
@@ -24,7 +24,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentMode = 'pomodoro';
     let sessionsCompleted = 0;
     let totalFocusTime = 0;
-    let lastUpdateTime = Date.now();
+    let targetTime = 0; // Target timestamp when timer should finish
     
     // Set up the progress ring
     const radius = progressRing.r.baseVal.value;
@@ -57,59 +57,37 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle tab visibility change
     document.addEventListener('visibilitychange', function() {
-        if (document.hidden) {
-            // Tab is inactive, pause the timer if it's running
-            if (isRunning) {
-                pauseTimer();
-                localStorage.setItem('timerAutoPaused', 'true');
+        if (document.hidden && isRunning) {
+            // Tab is inactive, save the target time
+            localStorage.setItem('timerTargetTime', targetTime);
+        } else if (!document.hidden && localStorage.getItem('timerTargetTime')) {
+            // Tab is active again, check if we need to resume
+            const savedTargetTime = parseInt(localStorage.getItem('timerTargetTime'));
+            if (savedTargetTime > Date.now()) {
+                // Timer was running, resume it
+                timeLeft = Math.ceil((savedTargetTime - Date.now()) / 1000);
+                startTimer();
+            } else {
+                // Timer has finished while tab was inactive
+                timeLeft = 0;
+                timerComplete();
+                localStorage.removeItem('timerTargetTime');
             }
-        } else {
-            // Tab is active again
-            if (localStorage.getItem('timerAutoPaused') === 'true') {
-                showNotification('Timer was paused because tab was inactive', 'info');
-                localStorage.removeItem('timerAutoPaused');
-            }
-        }
-    });
-    
-    // Handle page unloading
-    window.addEventListener('beforeunload', function() {
-        if (isRunning) {
-            // Save the current state including the exact time left
-            const currentTime = Date.now();
-            const elapsedSeconds = Math.floor((currentTime - lastUpdateTime) / 1000);
-            const remainingTime = timeLeft - elapsedSeconds;
-            
-            localStorage.setItem('timerRunningState', JSON.stringify({
-                isRunning: true,
-                timeLeft: remainingTime > 0 ? remainingTime : 0,
-                mode: currentMode,
-                lastUpdateTime: currentTime
-            }));
-        } else {
-            localStorage.removeItem('timerRunningState');
         }
     });
     
     // Check for running timer on page load
-    const runningState = JSON.parse(localStorage.getItem('timerRunningState') || 'null');
-    if (runningState && runningState.isRunning) {
-        // Calculate how much time has passed since the timer was running
-        const currentTime = Date.now();
-        const elapsedSeconds = Math.floor((currentTime - runningState.lastUpdateTime) / 1000);
-        timeLeft = runningState.timeLeft - elapsedSeconds;
-        
-        if (timeLeft <= 0) {
+    const savedTargetTime = localStorage.getItem('timerTargetTime');
+    if (savedTargetTime) {
+        const remainingTime = Math.ceil((parseInt(savedTargetTime) - Date.now()) / 1000);
+        if (remainingTime > 0) {
+            timeLeft = remainingTime;
+            startTimer();
+        } else {
+            localStorage.removeItem('timerTargetTime');
             timeLeft = 0;
             timerComplete();
-        } else {
-            // Resume the timer
-            currentMode = runningState.mode;
-            switchMode(getMinutesByMode(currentMode));
-            startTimer();
         }
-        
-        localStorage.removeItem('timerRunningState');
     }
     
     function startTimer() {
@@ -118,24 +96,28 @@ document.addEventListener('DOMContentLoaded', function() {
         isRunning = true;
         startButton.disabled = true;
         pauseButton.disabled = false;
-        lastUpdateTime = Date.now();
         
-        timerInterval = setInterval(() => {
-            const currentTime = Date.now();
-            const elapsedSeconds = Math.floor((currentTime - lastUpdateTime) / 1000);
-            lastUpdateTime = currentTime;
-            
-            timeLeft -= elapsedSeconds;
-            
-            if (timeLeft <= 0) {
-                timeLeft = 0;
-                clearInterval(timerInterval);
-                timerComplete();
-                return;
-            }
-            
-            updateDisplay();
-        }, 1000);
+        // Calculate target time
+        targetTime = Date.now() + (timeLeft * 1000);
+        localStorage.setItem('timerTargetTime', targetTime);
+        
+        timerInterval = setInterval(updateTimer, 100);
+    }
+    
+    function updateTimer() {
+        const currentTime = Date.now();
+        const remainingTime = Math.ceil((targetTime - currentTime) / 1000);
+        
+        if (remainingTime <= 0) {
+            timeLeft = 0;
+            clearInterval(timerInterval);
+            localStorage.removeItem('timerTargetTime');
+            timerComplete();
+            return;
+        }
+        
+        timeLeft = remainingTime;
+        updateDisplay();
     }
     
     function pauseTimer() {
@@ -145,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
         isRunning = false;
         startButton.disabled = false;
         pauseButton.disabled = true;
+        localStorage.removeItem('timerTargetTime');
     }
     
     function resetTimer() {
@@ -152,6 +135,7 @@ document.addEventListener('DOMContentLoaded', function() {
         isRunning = false;
         startButton.disabled = false;
         pauseButton.disabled = true;
+        localStorage.removeItem('timerTargetTime');
         
         switchMode(getMinutesByMode(currentMode));
         updateDisplay();

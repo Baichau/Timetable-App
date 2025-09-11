@@ -185,6 +185,9 @@ document.addEventListener('DOMContentLoaded', function() {
             totalFocusTime += 25;
             updateStats();
             saveUserData();
+            
+            // Save to server
+            saveFocusSession();
         }
         
         // Auto-start next session if enabled
@@ -210,6 +213,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 startTimer();
             }
         }
+    }
+    
+    function saveFocusSession() {
+        fetch('/api/focus-sessions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                duration: 25,
+                session_type: 'pomodoro',
+                completed: true
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (!data.message) {
+                console.error('Error saving focus session:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error saving focus session:', error);
+        });
     }
     
     function updateDisplay() {

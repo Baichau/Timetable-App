@@ -1,398 +1,377 @@
-// static/js/timetable.js - FIXED VERSION
-document.addEventListener('DOMContentLoaded', function() {
-    // DOM elements
-    const timetableGrid = document.getElementById('timetable');
-    const addEventBtn = document.getElementById('add-event-btn');
-    const addFirstEventBtn = document.getElementById('add-first-event');
-    const eventModal = document.getElementById('event-modal');
-    const eventForm = document.getElementById('event-form');
-    const closeModalBtn = document.querySelector('.close-modal');
-    const cancelEventBtn = document.getElementById('cancel-event');
-    const deleteAllBtn = document.getElementById('delete-all-btn');
-    const currentWeekElement = document.getElementById('current-week');
-    
-    // State
-    let events = JSON.parse(localStorage.getItem('timetableEvents')) || [];
-    let editingEventId = null;
-    let isEditing = false;
-    let currentWeekOffset = 0; // 0 means current week
-    
-    // Initialize
+// DOM elements
+const timetableGrid = document.getElementById('timetable');
+const addEventBtn = document.getElementById('add-event-btn');
+const addFirstEventBtn = document.getElementById('add-first-event');
+const eventModal = document.getElementById('event-modal');
+const eventForm = document.getElementById('event-form');
+const closeModalBtn = document.querySelector('.close-modal');
+const cancelEventBtn = document.getElementById('cancel-event');
+const deleteAllBtn = document.getElementById('delete-all-btn');
+const currentWeekElement = document.getElementById('current-week');
+const currentTimeElement = document.getElementById('current-time');
+const emptyState = document.getElementById('empty-state');
+
+// State
+let events = [];
+let editingEventId = null;
+let isEditing = false;
+let currentWeekOffset = 0; // 0 means current week
+
+// Initialize
+loadEvents();
+updateWeekDisplay();
+generateTimeSlots();
+updateCurrentTime();
+setInterval(updateCurrentTime, 1000);
+checkEmptyState();
+
+// Event listeners
+addEventBtn.addEventListener('click', openEventModal);
+if (addFirstEventBtn) {
+    addFirstEventBtn.addEventListener('click', openEventModal);
+}
+
+closeModalBtn.addEventListener('click', closeEventModal);
+if (cancelEventBtn) cancelEventBtn.addEventListener('click', closeEventModal);
+
+eventForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    saveEvent();
+});
+
+if (deleteAllBtn) {
+    deleteAllBtn.addEventListener('click', openDeleteAllModal);
+}
+
+// Week navigation
+document.getElementById('prev-week').addEventListener('click', function() {
+    currentWeekOffset--;
     updateWeekDisplay();
     generateTimeSlots();
-    updateCurrentTime();
-    setInterval(updateCurrentTime, 1000);
-    checkEmptyState();
-    
-    // Event listeners
-    addEventBtn.addEventListener('click', openEventModal);
-    if (addFirstEventBtn) {
-        addFirstEventBtn.addEventListener('click', openEventModal);
-    }
-    
-    closeModalBtn.addEventListener('click', closeEventModal);
-    if (cancelEventBtn) cancelEventBtn.addEventListener('click', closeEventModal);
-    
-    eventForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        saveEvent();
+});
+
+document.getElementById('next-week').addEventListener('click', function() {
+    currentWeekOffset++;
+    updateWeekDisplay();
+    generateTimeSlots();
+});
+
+// Functions
+function updateCurrentTime() {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString();
+    const dateString = now.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
     });
     
-    if (deleteAllBtn) {
-        deleteAllBtn.addEventListener('click', openDeleteAllModal);
+    currentTimeElement.textContent = `${dateString} | ${timeString}`;
+}
+
+function getCurrentWeekRange() {
+    const now = new Date();
+    const currentDay = now.getDay();
+    const startDate = new Date(now);
+    startDate.setDate(now.getDate() - currentDay + 1 + (currentWeekOffset * 7));
+    
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    
+    return { startDate, endDate };
+}
+
+function updateWeekDisplay() {
+    const { startDate, endDate } = getCurrentWeekRange();
+    
+    const startMonth = startDate.toLocaleDateString('en-US', { month: 'short' });
+    const endMonth = endDate.toLocaleDateString('en-US', { month: 'short' });
+    
+    const startDay = startDate.getDate();
+    const endDay = endDate.getDate();
+    
+    const year = startDate.getFullYear();
+    
+    let weekString;
+    if (startMonth === endMonth) {
+        weekString = `${startMonth} ${startDay} - ${endDay}, ${year}`;
+    } else {
+        weekString = `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`;
     }
     
-    // Week navigation
-    document.getElementById('prev-week').addEventListener('click', function() {
-        currentWeekOffset--;
-        updateWeekDisplay();
-        generateTimeSlots();
-    });
+    currentWeekElement.textContent = weekString;
+}
+
+function generateTimeSlots() {
+    // Remove existing time slots (except headers)
+    const existingSlots = document.querySelectorAll('.time-slot');
+    existingSlots.forEach(slot => slot.remove());
     
-    document.getElementById('next-week').addEventListener('click', function() {
-        currentWeekOffset++;
-        updateWeekDisplay();
-        generateTimeSlots();
-    });
+    // Remove existing events (to prevent duplication)
+    const existingEvents = document.querySelectorAll('.event');
+    existingEvents.forEach(event => event.remove());
     
-    // Close modal when clicking outside
-    eventModal.addEventListener('click', function(e) {
-        if (e.target === eventModal) {
-            closeEventModal();
-        }
-    });
-    
-    // Delete modals
-    const deleteModal = document.getElementById('delete-modal');
-    const deleteAllModal = document.getElementById('delete-all-modal');
-    const closeDeleteModalBtn = document.querySelector('.close-delete-modal');
-    const closeDeleteAllModalBtn = document.querySelector('.close-delete-all-modal');
-    const cancelDeleteBtn = document.getElementById('cancel-delete');
-    const confirmDeleteBtn = document.getElementById('confirm-delete');
-    const cancelDeleteAllBtn = document.getElementById('cancel-delete-all');
-    const confirmDeleteAllBtn = document.getElementById('confirm-delete-all');
-    
-    if (closeDeleteModalBtn) {
-        closeDeleteModalBtn.addEventListener('click', closeDeleteModal);
-    }
-    
-    if (closeDeleteAllModalBtn) {
-        closeDeleteAllModalBtn.addEventListener('click', closeDeleteAllModal);
-    }
-    
-    if (cancelDeleteBtn) {
-        cancelDeleteBtn.addEventListener('click', closeDeleteModal);
-    }
-    
-    if (confirmDeleteBtn) {
-        confirmDeleteBtn.addEventListener('click', confirmDelete);
-    }
-    
-    if (cancelDeleteAllBtn) {
-        cancelDeleteAllBtn.addEventListener('click', closeDeleteAllModal);
-    }
-    
-    if (confirmDeleteAllBtn) {
-        confirmDeleteAllBtn.addEventListener('click', confirmDeleteAll);
-    }
-    
-    // Close modals when clicking outside
-    window.addEventListener('click', function(e) {
-        if (e.target === deleteModal) {
-            closeDeleteModal();
-        }
-        if (e.target === deleteAllModal) {
-            closeDeleteAllModal();
-        }
-    });
-    
-    // Functions
-    function updateCurrentTime() {
-        const now = new Date();
-        const timeString = now.toLocaleTimeString();
-        document.getElementById('current-time').textContent = timeString;
-    }
-    
-    function updateWeekDisplay() {
-        const now = new Date();
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay() + 1 + (currentWeekOffset * 7)); // Monday of the week
+    // Generate time labels and slots
+    for (let hour = 8; hour <= 20; hour++) {
+        const timeLabel = document.createElement('div');
+        timeLabel.className = 'time-label';
+        timeLabel.textContent = `${hour}:00`;
+        timetableGrid.appendChild(timeLabel);
         
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6); // Sunday of the week
-        
-        const options = { month: 'long', day: 'numeric' };
-        const startStr = startOfWeek.toLocaleDateString('en-US', options);
-        const endStr = endOfWeek.toLocaleDateString('en-US', { 
-            month: 'long', 
-            day: 'numeric', 
-            year: 'numeric' 
-        });
-        
-        currentWeekElement.textContent = `${startStr} - ${endStr}`;
-        
-        // Update day headers with dates
-        const dayHeaders = document.querySelectorAll('.day-header');
-        const dayDates = document.querySelectorAll('.day-date');
-        
-        for (let i = 0; i < 7; i++) {
-            const dayDate = new Date(startOfWeek);
-            dayDate.setDate(startOfWeek.getDate() + i);
-            
-            const dayName = dayDate.toLocaleDateString('en-US', { weekday: 'long' });
-            const dateStr = dayDate.toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric' 
+        for (let day = 0; day < 7; day++) {
+            const timeSlot = document.createElement('div');
+            timeSlot.className = 'time-slot';
+            timeSlot.dataset.hour = hour;
+            timeSlot.dataset.day = day;
+            timeSlot.addEventListener('click', function() {
+                openEventModalForTimeSlot(day, hour);
             });
-            
-            dayHeaders[i].innerHTML = `${dayName} <span class="day-date">${dateStr}</span>`;
+            timetableGrid.appendChild(timeSlot);
         }
     }
     
-    function checkEmptyState() {
-        const emptyState = document.getElementById('empty-state');
-        if (events.length === 0) {
-            emptyState.style.display = 'block';
-            timetableGrid.style.display = 'none';
-        } else {
-            emptyState.style.display = 'none';
-            timetableGrid.style.display = 'grid';
+    // Render events for the current week
+    renderEvents();
+}
+
+function openEventModalForTimeSlot(day, hour) {
+    document.getElementById('event-day').value = day;
+    document.getElementById('event-start').value = `${hour.toString().padStart(2, '0')}:00`;
+    document.getElementById('event-end').value = `${(hour + 1).toString().padStart(2, '0')}:00`;
+    
+    openEventModal();
+}
+
+function openEventModal() {
+    isEditing = false;
+    editingEventId = null;
+    document.getElementById('modal-title').textContent = 'Add New Event';
+    document.getElementById('event-id').value = '';
+    document.getElementById('event-title').value = '';
+    document.getElementById('event-description').value = '';
+    document.getElementById('event-color').value = '#3498db';
+    document.getElementById('event-start').value = '09:00';
+    document.getElementById('event-end').value = '10:00';
+    document.getElementById('event-recurring').checked = false;
+    document.getElementById('recurrence-options').style.display = 'none';
+    
+    eventModal.style.display = 'flex';
+}
+
+function closeEventModal() {
+    eventModal.style.display = 'none';
+}
+
+function saveEvent() {
+    const eventId = document.getElementById('event-id').value || generateId();
+    const title = document.getElementById('event-title').value;
+    const description = document.getElementById('event-description').value;
+    const day = parseInt(document.getElementById('event-day').value);
+    const color = document.getElementById('event-color').value;
+    const startTime = document.getElementById('event-start').value;
+    const endTime = document.getElementById('event-end').value;
+    const isRecurring = document.getElementById('event-recurring').checked;
+    
+    if (!title) {
+        showNotification('Please enter a title for the event', 'error');
+        return;
+    }
+    
+    const event = {
+        id: eventId,
+        title,
+        description,
+        day,
+        color,
+        startTime,
+        endTime,
+        isRecurring
+    };
+    
+    if (isEditing) {
+        // Update existing event
+        const index = events.findIndex(e => e.id === editingEventId);
+        if (index !== -1) {
+            events[index] = event;
+            showNotification('Event updated successfully', 'success');
         }
+    } else {
+        // Add new event
+        events.push(event);
+        showNotification('Event added successfully', 'success');
     }
     
-    function generateTimeSlots() {
-        const startHour = 8; // 8 AM
-        const endHour = 22; // 10 PM
+    saveEventsToStorage();
+    renderEvents();
+    closeEventModal();
+    checkEmptyState();
+}
+
+function renderEvents() {
+    // Clear existing events
+    const existingEvents = document.querySelectorAll('.event');
+    existingEvents.forEach(event => event.remove());
+    
+    const { startDate } = getCurrentWeekRange();
+    
+    events.forEach(event => {
+        const eventStartTime = parseTimeString(event.startTime);
+        const eventEndTime = parseTimeString(event.endTime);
         
-        // Clear existing time slots except headers
-        const existingTimeSlots = document.querySelectorAll('.time-slot');
-        existingTimeSlots.forEach(slot => slot.remove());
-        
-        for (let hour = startHour; hour <= endHour; hour++) {
-            // Add time label
-            const timeLabel = document.createElement('div');
-            timeLabel.className = 'time-label';
-            timeLabel.textContent = `${hour}:00`;
-            timetableGrid.appendChild(timeLabel);
+        // Check if event falls within the displayed hours
+        if (eventStartTime.hours >= 8 && eventStartTime.hours <= 20) {
+            const timeSlot = document.querySelector(`.time-slot[data-day="${event.day}"][data-hour="${eventStartTime.hours}"]`);
             
-            // Add time slots for each day
-            for (let day = 0; day < 7; day++) {
-                const timeSlot = document.createElement('div');
-                timeSlot.className = 'time-slot';
-                timeSlot.setAttribute('data-day', day);
-                timeSlot.setAttribute('data-hour', hour);
-                timeSlot.addEventListener('click', function() {
-                    openEventModal(day, `${hour}:00`);
-                });
-                timetableGrid.appendChild(timeSlot);
-            }
-        }
-        
-        // Render events after generating time slots
-        renderEvents();
-    }
-    
-    function createEventElement(event) {
-        const eventElement = document.createElement('div');
-        eventElement.className = 'event';
-        eventElement.style.backgroundColor = event.color;
-        eventElement.dataset.id = event.id;
-        
-        const startTime = formatTime(event.startTime);
-        const endTime = formatTime(event.endTime);
-        
-        eventElement.innerHTML = `
-            <div class="event-title">${event.title}</div>
-            <div class="event-time">${startTime} - ${endTime}</div>
-            <div class="event-actions">
-                <button class="edit-event"><i class="fas fa-edit"></i></button>
-                <button class="delete-event"><i class="fas fa-trash"></i></button>
-            </div>
-        `;
-        
-        // Add click event for editing
-        eventElement.querySelector('.edit-event').addEventListener('click', function(e) {
-            e.stopPropagation();
-            openEditModal(event);
-        });
-        
-        // Add click event for deleting
-        eventElement.querySelector('.delete-event').addEventListener('click', function(e) {
-            e.stopPropagation();
-            openDeleteModal(event);
-        });
-        
-        return eventElement;
-    }
-    
-    function formatTime(timeString) {
-        const [hours, minutes] = timeString.split(':');
-        const hour = parseInt(hours);
-        return `${hour > 12 ? hour - 12 : hour}:${minutes} ${hour >= 12 ? 'PM' : 'AM'}`;
-    }
-    
-    function renderEvents() {
-        // Clear all existing events
-        const existingEvents = document.querySelectorAll('.event');
-        existingEvents.forEach(event => event.remove());
-        
-        events.forEach(event => {
-            const startHour = parseInt(event.startTime.split(':')[0]);
-            const day = parseInt(event.day);
-            
-            // Find the correct time slot
-            const timeSlot = document.querySelector(`.time-slot[data-day="${day}"][data-hour="${startHour}"]`);
             if (timeSlot) {
-                const eventElement = createEventElement(event);
+                const eventElement = document.createElement('div');
+                eventElement.className = 'event';
+                eventElement.style.backgroundColor = event.color;
+                eventElement.innerHTML = `
+                    <div class="event-title">${event.title}</div>
+                    <div class="event-time">${event.startTime} - ${event.endTime}</div>
+                    <div class="event-actions">
+                        <button class="edit-event" data-id="${event.id}"><i class="fas fa-edit"></i></button>
+                        <button class="delete-event" data-id="${event.id}"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                
+                // Calculate height based on duration
+                const duration = (eventEndTime.hours - eventStartTime.hours) + 
+                                (eventEndTime.minutes - eventStartTime.minutes) / 60;
+                eventElement.style.height = `calc(${duration * 80}px - 4px)`;
+                
                 timeSlot.appendChild(eventElement);
+                
+                // Add event listeners for edit and delete buttons
+                eventElement.querySelector('.edit-event').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    editEvent(event.id);
+                });
+                
+                eventElement.querySelector('.delete-event').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    openDeleteModal(event.id);
+                });
             }
-        });
-        
-        checkEmptyState();
-    }
-    
-    function saveEvents() {
-        localStorage.setItem('timetableEvents', JSON.stringify(events));
-        renderEvents();
-    }
-    
-    function generateId() {
-        return Date.now().toString(36) + Math.random().toString(36).substr(2);
-    }
-    
-    function openEventModal(dayIndex = null, timeSlot = null) {
-        editingEventId = null;
-        isEditing = false;
-        
-        // Reset form
-        eventForm.reset();
-        document.getElementById('modal-title').textContent = 'Add New Event';
-        
-        // Set default values if provided
-        if (dayIndex !== null) {
-            document.getElementById('event-day').value = dayIndex;
         }
+    });
+}
+
+function editEvent(eventId) {
+    const event = events.find(e => e.id === eventId);
+    if (event) {
+        isEditing = true;
+        editingEventId = eventId;
         
-        if (timeSlot !== null) {
-            document.getElementById('event-start').value = timeSlot;
-            
-            // Calculate end time (1 hour later by default)
-            const [hours, minutes] = timeSlot.split(':').map(Number);
-            let endHours = hours + 1;
-            if (endHours > 23) endHours = 23;
-            document.getElementById('event-end').value = `${endHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-        }
-        
-        // Show modal
-        eventModal.style.display = 'flex';
-    }
-    
-    function closeEventModal() {
-        eventModal.style.display = 'none';
-        editingEventId = null;
-        isEditing = false;
-    }
-    
-    function openEditModal(event) {
         document.getElementById('modal-title').textContent = 'Edit Event';
         document.getElementById('event-id').value = event.id;
         document.getElementById('event-title').value = event.title;
-        document.getElementById('event-description').value = event.description || '';
+        document.getElementById('event-description').value = event.description;
         document.getElementById('event-day').value = event.day;
+        document.getElementById('event-color').value = event.color;
         document.getElementById('event-start').value = event.startTime;
         document.getElementById('event-end').value = event.endTime;
-        document.getElementById('event-color').value = event.color;
-        document.getElementById('event-recurring').checked = event.recurring || false;
+        document.getElementById('event-recurring').checked = event.isRecurring;
         
-        if (event.recurring) {
-            document.getElementById('event-repeat-until').value = event.repeatUntil || '';
+        if (event.isRecurring) {
+            document.getElementById('recurrence-options').style.display = 'block';
         }
         
-        isEditing = true;
-        editingEventId = event.id;
         eventModal.style.display = 'flex';
     }
+}
+
+function openDeleteModal(eventId) {
+    const deleteModal = document.getElementById('delete-modal');
+    deleteModal.style.display = 'flex';
     
-    function openDeleteModal(event) {
-        editingEventId = event.id;
-        deleteModal.style.display = 'flex';
-    }
-    
-    function closeDeleteModal() {
+    document.getElementById('cancel-delete').addEventListener('click', function() {
         deleteModal.style.display = 'none';
-        editingEventId = null;
+    });
+    
+    document.getElementById('confirm-delete').addEventListener('click', function() {
+        deleteEvent(eventId);
+        deleteModal.style.display = 'none';
+    });
+}
+
+function openDeleteAllModal() {
+    if (events.length === 0) {
+        showNotification('There are no events to delete', 'error');
+        return;
     }
     
-    function openDeleteAllModal() {
-        if (events.length === 0) {
-            alert("Your timetable is already empty!");
-            return;
-        }
-        deleteAllModal.style.display = 'flex';
-    }
+    const deleteAllModal = document.getElementById('delete-all-modal');
+    deleteAllModal.style.display = 'flex';
     
-    function closeDeleteAllModal() {
+    document.getElementById('cancel-delete-all').addEventListener('click', function() {
         deleteAllModal.style.display = 'none';
-    }
+    });
     
-    function confirmDelete() {
-        if (editingEventId) {
-            const deleteOption = document.querySelector('input[name="delete-option"]:checked').value;
-            
-            if (deleteOption === 'all') {
-                // Delete all events in series (for recurring events)
-                events = events.filter(event => event.id !== editingEventId && event.seriesId !== editingEventId);
-            } else {
-                // Delete only this event
-                events = events.filter(event => event.id !== editingEventId);
-            }
-            
-            saveEvents();
-            closeDeleteModal();
-        }
+    document.getElementById('confirm-delete-all').addEventListener('click', function() {
+        deleteAllEvents();
+        deleteAllModal.style.display = 'none';
+    });
+}
+
+function deleteEvent(eventId) {
+    events = events.filter(event => event.id !== eventId);
+    saveEventsToStorage();
+    renderEvents();
+    showNotification('Event deleted successfully', 'success');
+    checkEmptyState();
+}
+
+function deleteAllEvents() {
+    events = [];
+    saveEventsToStorage();
+    renderEvents();
+    showNotification('All events deleted successfully', 'success');
+    checkEmptyState();
+}
+
+function checkEmptyState() {
+    if (events.length === 0) {
+        emptyState.style.display = 'block';
+    } else {
+        emptyState.style.display = 'none';
     }
+}
+
+function showNotification(message, type) {
+    const notification = document.getElementById('notification');
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+    notification.classList.add('show');
     
-    function confirmDeleteAll() {
-        events = [];
-        saveEvents();
-        closeDeleteAllModal();
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000);
+}
+
+function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+function parseTimeString(timeString) {
+    const [hours, minutes] = timeString.split(':').map(Number);
+    return { hours, minutes };
+}
+
+function saveEventsToStorage() {
+    localStorage.setItem('timetableEvents', JSON.stringify(events));
+}
+
+function loadEvents() {
+    const storedEvents = localStorage.getItem('timetableEvents');
+    if (storedEvents) {
+        events = JSON.parse(storedEvents);
     }
-    
-    function saveEvent() {
-        const eventId = document.getElementById('event-id').value;
-        const title = document.getElementById('event-title').value;
-        const description = document.getElementById('event-description').value;
-        const day = document.getElementById('event-day').value;
-        const startTime = document.getElementById('event-start').value;
-        const endTime = document.getElementById('event-end').value;
-        const color = document.getElementById('event-color').value;
-        const recurring = document.getElementById('event-recurring').checked;
-        const repeatUntil = document.getElementById('event-repeat-until').value;
-        
-        const eventData = {
-            id: eventId || generateId(),
-            title,
-            description,
-            day,
-            startTime,
-            endTime,
-            color,
-            recurring,
-            repeatUntil: recurring ? repeatUntil : null
-        };
-        
-        if (isEditing) {
-            // Update existing event
-            const index = events.findIndex(event => event.id === eventId);
-            if (index !== -1) {
-                events[index] = eventData;
-            }
-        } else {
-            // Add new event
-            events.push(eventData);
-        }
-        
-        saveEvents();
-        closeEventModal();
-    }
+}
+
+// Recurring event options toggle
+document.getElementById('event-recurring').addEventListener('change', function() {
+    const recurrenceOptions = document.getElementById('recurrence-options');
+    recurrenceOptions.style.display = this.checked ? 'block' : 'none';
 });

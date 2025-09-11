@@ -1,4 +1,4 @@
-<!-- templates/timetable.html - FIXED VERSION -->
+<!-- templates/timetable.html - FIXED -->
 {% extends "base.html" %}
 
 {% block title %}Timetable - EduFocus{% endblock %}
@@ -186,9 +186,63 @@
         background: rgba(255, 255, 255, 0.5);
     }
 
-    /* Rest of the modal and other styles remain the same */
-    /* ... */
+    /* Modal Styles */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+    }
 
+    .modal-content {
+        background-color: var(--card-bg);
+        border-radius: var(--border-radius);
+        padding: 30px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: var(--box-shadow);
+        position: relative;
+    }
+
+    .close-modal {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--gray-color);
+    }
+
+    .close-modal:hover {
+        color: var(--text-color);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 40px;
+        background-color: var(--card-bg);
+        border-radius: var(--border-radius);
+        margin-bottom: 40px;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: var(--gray-color);
+        margin-bottom: 20px;
+    }
 </style>
 {% endblock %}
 
@@ -242,9 +296,89 @@
     </div>
 </div>
 
-<!-- Event Modal and other modals remain the same -->
-<!-- ... -->
+<!-- Event Modal -->
+<div id="event-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2 id="modal-title">Add New Event</h2>
+        <form id="event-form">
+            <input type="hidden" id="event-id">
+            <div class="form-group">
+                <label for="event-title">Event Title</label>
+                <input type="text" id="event-title" required>
+            </div>
+            <div class="form-group">
+                <label for="event-description">Description (optional)</label>
+                <textarea id="event-description" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="event-day">Day</label>
+                <select id="event-day" required>
+                    <option value="0">Monday</option>
+                    <option value="1">Tuesday</option>
+                    <option value="2">Wednesday</option>
+                    <option value="3">Thursday</option>
+                    <option value="4">Friday</option>
+                    <option value="5">Saturday</option>
+                    <option value="6">Sunday</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="event-start">Start Time</label>
+                <input type="time" id="event-start" required>
+            </div>
+            <div class="form-group">
+                <label for="event-end">End Time</label>
+                <input type="time" id="event-end" required>
+            </div>
+            <div class="form-group">
+                <label for="event-color">Color</label>
+                <input type="color" id="event-color" value="#3a86ff">
+            </div>
+            <div class="form-group">
+                <label for="event-recurring">
+                    <input type="checkbox" id="event-recurring"> Recurring Event
+                </label>
+            </div>
+            <div id="recurrence-options" style="display: none;">
+                <div class="form-group">
+                    <label for="event-repeat-until">Repeat Until</label>
+                    <input type="date" id="event-repeat-until">
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="cancel-event">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Event</button>
+            </div>
+        </form>
+    </div>
+</div>
 
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2>Confirm Delete</h2>
+        <p>Are you sure you want to delete this event?</p>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-delete">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirm-delete">Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete All Modal -->
+<div id="delete-all-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2>Delete All Events</h2>
+        <p>Are you sure you want to delete all events? This action cannot be undone.</p>
+        <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-delete-all">Cancel</button>
+            <button type="button" class="btn btn-danger" id="confirm-delete-all">Delete All</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
